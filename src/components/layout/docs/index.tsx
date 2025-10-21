@@ -12,7 +12,7 @@ import {
   type BaseLinkType,
   getLinks,
   type LinkItemType,
-} from '../shared/index';
+} from 'fumadocs-ui/layouts/shared';
 import {
   Sidebar,
   SidebarCollapseTrigger,
@@ -30,23 +30,22 @@ import {
   type SidebarProps,
   SidebarTrigger,
   SidebarViewport,
-} from '../../sidebar';
+} from 'fumadocs-ui/components/layout/sidebar';
 import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { cn } from '../../../lib/cn';
 import { buttonVariants } from '../../ui/button';
-import {
-  ChevronDown,
+import { ChevronDown,
   Languages,
   Sidebar as SidebarIcon,
   X,
 } from 'lucide-react';
-import { LanguageToggle } from '../../language-toggle';
-import { ThemeToggle } from '../../theme-toggle';
+import { LanguageToggle } from 'fumadocs-ui/components/layout/language-toggle';
+import { ThemeToggle } from 'fumadocs-ui/components/layout/theme-toggle';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '../../ui/popover';
+} from 'fumadocs-ui/components/ui/popover';
 import type * as PageTree from 'fumadocs-core/page-tree';
 import {
   LayoutBody,
@@ -55,12 +54,12 @@ import {
   NavbarSidebarTrigger,
 } from './client';
 import { NavProvider } from 'fumadocs-ui/contexts/layout';
-import { type Option, RootToggle } from '../../root-toggle';
+import { type Option, RootToggle } from 'fumadocs-ui/components/layout/root-toggle';
 import Link from 'fumadocs-core/link';
 import {
   LargeSearchToggle,
   SearchToggle,
-} from '../../search-toggle';
+} from 'fumadocs-ui/components/layout/search-toggle';
 import {
   getSidebarTabs,
   type GetSidebarTabsOptions,
@@ -351,7 +350,6 @@ function DocsNavbar({
 
   return (
     <Navbar
-      mode={navMode}
       className={cn(
         'on-root:[--fd-nav-height:56px] md:on-root:[--fd-nav-height:64px]',
         tabs.length > 0 && 'lg:on-root:[--fd-nav-height:104px]',

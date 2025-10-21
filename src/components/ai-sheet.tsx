@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Send, Bot, User, X, Info, Sparkles, Paperclip, Link, Code, Mic } from "lucide-react";
+import { Send, Bot, User, X, Info, Paperclip, Link, Code, Mic } from "lucide-react";
 import { askGemini, searchDocumentation } from "@/lib/gemini";
 import { sanitizeAIResponse } from "@/lib/sanitize-ai-response";
 import { MessageContent } from "@/components/message-content";

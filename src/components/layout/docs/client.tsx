@@ -9,6 +9,9 @@ import { useNav } from 'fumadocs-ui/contexts/layout';
 import { usePathname } from 'fumadocs-core/framework';
 import { isTabActive } from '../../../lib/is-active';
 import Link from 'fumadocs-core/link';
+import { SidebarCollapseTrigger, SidebarTrigger } from 'fumadocs-ui/components/layout/sidebar';
+import { SearchToggle } from 'fumadocs-ui/components/layout/search-toggle';
+import { type Option } from 'fumadocs-ui/components/layout/root-toggle';
 
 export function Navbar(props: ComponentProps<'header'>) {
   const { isTransparent } = useNav();
@@ -132,4 +135,8 @@ function LayoutTab({
       {title}
     </Link>
   );
+}
+
+export function NavbarSidebarTrigger(props: ComponentProps<typeof SidebarTrigger>) {
+  return <SidebarTrigger {...props} />;
 }

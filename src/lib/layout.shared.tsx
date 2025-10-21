@@ -1,4 +1,4 @@
-import { BookIcon, Cpu, Zap, Bot, Shield, Factory } from 'lucide-react';
+import { Cpu, Zap, Bot, Shield, Factory } from 'lucide-react';
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 import { AISheet } from '@/components/ai-sheet';
 

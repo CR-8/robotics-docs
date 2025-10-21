@@ -26,7 +26,10 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
       <DocsDescription>{page.data.description}</DocsDescription>
       <div className="flex flex-row gap-2 items-center border-b pt-2 pb-6">
         <LLMCopyButton markdownUrl={`${page.url}.mdx`} />
-        <ViewOptions markdownUrl={`${page.url}.mdx`} githubUrl='' />
+        <ViewOptions 
+          markdownUrl={`${page.url}.mdx`} 
+          githubUrl={`https://github.com/CR-8/robotics-docs/blob/main/content${page.url}.mdx`} 
+        />
       </div>
       <DocsBody>
         <MDX
@@ -44,8 +47,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
             timestamp: new Date().toISOString(),
           });
           return { 
-            status: 'success' as const,
-            githubUrl: undefined,
+            githubUrl: `https://github.com/CR-8/robotics-docs/blob/main/content${page.url}.mdx`,
           };
         }}
       />
