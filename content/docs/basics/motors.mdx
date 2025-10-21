@@ -1,0 +1,59 @@
+---
+title: DC Motors
+description: Understanding DC motors for robotics applications
+---
+
+# DC Motors
+
+DC motors are the fundamental actuators in robotics, converting electrical energy into mechanical rotation.
+
+## Types of DC Motors
+
+### Brushed DC Motors
+- Simple to control
+- Cost-effective
+- Require periodic maintenance
+- Good torque at low speeds
+
+### Brushless DC Motors (BLDC)
+- Higher efficiency
+- Longer lifespan
+- Require ESC (Electronic Speed Controller)
+- Better power-to-weight ratio
+
+## Key Specifications
+
+When selecting a motor, consider:
+
+- **Voltage**: Operating voltage range (e.g., 6V, 12V, 24V)
+- **Current**: No-load and stall current
+- **RPM**: Revolutions per minute at rated voltage
+- **Torque**: Holding and running torque
+- **Power**: Wattage rating
+
+## Motor Control
+
+```python
+# Example: PWM control with Arduino
+int motorPin = 9;
+int speed = 128; // 0-255
+
+void setup() {
+  pinMode(motorPin, OUTPUT);
+}
+
+void loop() {
+  analogWrite(motorPin, speed);
+}
+```
+
+## Popular Motor Series
+
+- **Johnson Motors**: High torque applications
+- **Pololu Micro Metal Gearmotors**: Compact robots
+- **RS-775**: Combat and high-power applications
+- **N20**: Miniature projects
+
+## Comparison Tool
+
+Want to compare different motors? Check out our [Component Comparison](/compare) tool.

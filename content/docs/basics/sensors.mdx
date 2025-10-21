@@ -1,0 +1,95 @@
+---
+title: Sensors
+description: Understanding sensors for robotic perception
+---
+
+# Sensors
+
+Sensors are the eyes and ears of robots, enabling them to perceive and interact with their environment.
+
+## Distance Sensors
+
+### Ultrasonic Sensors (HC-SR04)
+- **Range**: 2cm - 4m
+- **Accuracy**: ±3mm
+- **Use**: Obstacle detection, simple navigation
+- **Cost**: Very cheap ($2-5)
+
+### Infrared Sensors (Sharp GP2Y0A21YK0F)
+- **Range**: 10cm - 80cm
+- **Response**: Faster than ultrasonic
+- **Use**: Line following, proximity detection
+
+### LiDAR (RPLIDAR A1)
+- **Range**: 0.15m - 12m
+- **Resolution**: 360° scanning
+- **Use**: SLAM, autonomous navigation
+- **Cost**: Higher ($99+)
+
+## Motion Sensors
+
+### IMU (Inertial Measurement Unit)
+- **Components**: Accelerometer, Gyroscope, Magnetometer
+- **Output**: Orientation, acceleration, rotation
+- **Popular**: MPU6050, BNO055
+- **Use**: Balance, navigation, stabilization
+
+### Encoders
+- **Type**: Optical or magnetic
+- **Output**: Shaft rotation count
+- **Use**: Position tracking, odometry
+
+## Environmental Sensors
+
+### Temperature & Humidity (DHT22)
+- **Accuracy**: ±0.5°C, ±2% RH
+- **Use**: Environmental monitoring
+
+### Gas Sensors (MQ Series)
+- **Types**: MQ-2 (smoke), MQ-7 (CO), MQ-135 (air quality)
+- **Use**: Safety systems, air quality monitoring
+
+## Vision Sensors
+
+### Cameras
+- **Raspberry Pi Camera**: 8MP, video streaming
+- **ESP32-CAM**: WiFi-enabled, low cost
+- **Use**: Computer vision, object detection
+
+### Color Sensors (TCS3200)
+- **Output**: RGB values
+- **Use**: Line following, object sorting
+
+## Code Example
+
+```python
+# Reading ultrasonic sensor with Raspberry Pi
+import RPi.GPIO as GPIO
+import time
+
+TRIG = 23
+ECHO = 24
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+
+def get_distance():
+    GPIO.output(TRIG, True)
+    time.sleep(0.00001)
+    GPIO.output(TRIG, False)
+    
+    while GPIO.input(ECHO) == 0:
+        pulse_start = time.time()
+    
+    while GPIO.input(ECHO) == 1:
+        pulse_end = time.time()
+    
+    pulse_duration = pulse_end - pulse_start
+    distance = pulse_duration * 17150
+    distance = round(distance, 2)
+    
+    return distance
+
+print(f"Distance: {get_distance()} cm")
+```

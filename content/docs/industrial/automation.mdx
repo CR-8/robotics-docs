@@ -1,0 +1,432 @@
+---
+title: Industrial Automation
+description: Automation systems for industrial applications
+---
+
+# Industrial Automation
+
+Industrial automation uses robots and control systems to increase efficiency, safety, and productivity in manufacturing.
+
+## Automation Levels
+
+### Level 1: Fixed Automation
+- Dedicated to single task
+- High production volume
+- Difficult to reconfigure
+- **Example**: Bottling lines
+
+### Level 2: Programmable Automation
+- Reprogrammable for different tasks
+- Batch production
+- **Example**: CNC machines
+
+### Level 3: Flexible Automation
+- Quick changeover
+- Variety of products
+- **Example**: Modern assembly lines
+
+## PLC (Programmable Logic Controller)
+
+### Ladder Logic Basics
+
+```
+|---[ ]---( )---|    // Input button controls output
+    I:0   O:0        
+    
+|---[/]---( )---|    // Normally closed
+    I:1   O:1        
+    
+|---[ ]---[OSR]---( )---|  // One-shot rising
+    I:2         O:2
+```
+
+### PLC Programming Example
+
+```python
+# Simulated PLC logic (not actual ladder logic)
+class SimplePLC:
+    def __init__(self):
+        self.inputs = {}
+        self.outputs = {}
+        self.memory = {}
+    
+    def scan_cycle(self):
+        # Read inputs
+        self.read_inputs()
+        
+        # Execute logic
+        self.execute_logic()
+        
+        # Write outputs
+        self.write_outputs()
+    
+    def execute_logic(self):
+        # Example: Start/Stop motor
+        if self.inputs.get('start_button'):
+            if not self.inputs.get('e_stop'):
+                self.outputs['motor'] = True
+        
+        if self.inputs.get('stop_button'):
+            self.outputs['motor'] = False
+    
+    def read_inputs(self):
+        # Read from I/O modules
+        pass
+    
+    def write_outputs(self):
+        # Write to I/O modules
+        pass
+```
+
+## Conveyor Systems
+
+### Belt Conveyor Control
+
+```python
+class ConveyorController:
+    def __init__(self, belt_length_m, speed_m_per_s):
+        self.belt_length = belt_length_m
+        self.speed = speed_m_per_s
+        self.is_running = False
+        self.objects = []  # Track objects on belt
+    
+    def calculate_travel_time(self):
+        """Time for object to traverse belt"""
+        return self.belt_length / self.speed
+    
+    def start(self):
+        self.is_running = True
+        print("Conveyor started")
+    
+    def stop(self):
+        self.is_running = False
+        print("Conveyor stopped")
+    
+    def emergency_stop(self):
+        self.stop()
+        # Activate brakes
+        # Alert operator
+    
+    def add_object(self, obj_id):
+        """Track object entering belt"""
+        import time
+        self.objects.append({
+            'id': obj_id,
+            'enter_time': time.time()
+        })
+    
+    def check_exit(self):
+        """Check if objects have exited"""
+        import time
+        current_time = time.time()
+        travel_time = self.calculate_travel_time()
+        
+        exited = []
+        for obj in self.objects:
+            if (current_time - obj['enter_time']) >= travel_time:
+                exited.append(obj)
+        
+        for obj in exited:
+            self.objects.remove(obj)
+            print(f"Object {obj['id']} exited")
+```
+
+## Vision Systems
+
+### Quality Inspection
+
+```python
+import cv2
+import numpy as np
+
+class VisionInspector:
+    def __init__(self):
+        self.camera = cv2.VideoCapture(0)
+    
+    def inspect_part(self):
+        """Inspect part for defects"""
+        ret, frame = self.camera.read()
+        
+        # Convert to grayscale
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+        # Apply threshold
+        _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+        
+        # Find contours
+        contours, _ = cv2.findContours(
+            binary, 
+            cv2.RETR_EXTERNAL, 
+            cv2.CHAIN_APPROX_SIMPLE
+        )
+        
+        # Check size and shape
+        if len(contours) > 0:
+            largest = max(contours, key=cv2.contourArea)
+            area = cv2.contourArea(largest)
+            perimeter = cv2.arcLength(largest, True)
+            
+            # Calculate circularity
+            circularity = 4 * np.pi * area / (perimeter ** 2)
+            
+            # Define acceptable range
+            if 0.8 < circularity < 1.2 and 1000 < area < 5000:
+                return {'pass': True, 'circularity': circularity, 'area': area}
+            else:
+                return {'pass': False, 'circularity': circularity, 'area': area}
+        
+        return {'pass': False, 'error': 'No part detected'}
+```
+
+## SCADA (Supervisory Control and Data Acquisition)
+
+```python
+import time
+
+class SCADA_System:
+    def __init__(self):
+        self.sensors = {}
+        self.actuators = {}
+        self.alarms = []
+        self.data_log = []
+    
+    def read_sensor(self, sensor_id):
+        """Read sensor value"""
+        # Simulate sensor reading
+        return self.sensors.get(sensor_id, 0)
+    
+    def control_actuator(self, actuator_id, value):
+        """Control actuator"""
+        self.actuators[actuator_id] = value
+        self.log_event(f"Actuator {actuator_id} set to {value}")
+    
+    def check_alarms(self):
+        """Monitor for alarm conditions"""
+        # Example: Temperature monitoring
+        temp = self.read_sensor('temperature')
+        
+        if temp > 80:
+            self.trigger_alarm('HIGH_TEMP', f"Temperature: {temp}°C")
+        elif temp < 10:
+            self.trigger_alarm('LOW_TEMP', f"Temperature: {temp}°C")
+    
+    def trigger_alarm(self, alarm_type, message):
+        """Trigger alarm"""
+        alarm = {
+            'type': alarm_type,
+            'message': message,
+            'timestamp': time.time()
+        }
+        self.alarms.append(alarm)
+        # Send notification
+        # Log to database
+    
+    def log_event(self, event):
+        """Log system event"""
+        log_entry = {
+            'timestamp': time.time(),
+            'event': event
+        }
+        self.data_log.append(log_entry)
+```
+
+## Industrial Communication Protocols
+
+### Modbus RTU
+
+```python
+# Simplified Modbus implementation
+class ModbusClient:
+    def __init__(self, port, slave_id):
+        self.port = port
+        self.slave_id = slave_id
+    
+    def read_holding_registers(self, address, count):
+        """Read multiple holding registers"""
+        # Function code 0x03
+        # Build request frame
+        request = bytes([
+            self.slave_id,
+            0x03,  # Function code
+            (address >> 8) & 0xFF,
+            address & 0xFF,
+            (count >> 8) & 0xFF,
+            count & 0xFF
+        ])
+        
+        # Add CRC
+        request += self.calculate_crc(request)
+        
+        # Send and receive
+        # Parse response
+        pass
+    
+    def write_single_register(self, address, value):
+        """Write single holding register"""
+        # Function code 0x06
+        pass
+    
+    def calculate_crc(self, data):
+        """Calculate Modbus CRC"""
+        crc = 0xFFFF
+        for byte in data:
+            crc ^= byte
+            for _ in range(8):
+                if crc & 0x0001:
+                    crc = (crc >> 1) ^ 0xA001
+                else:
+                    crc >>= 1
+        return crc.to_bytes(2, 'little')
+```
+
+## Predictive Maintenance
+
+```python
+import numpy as np
+
+class PredictiveMaintenance:
+    def __init__(self):
+        self.vibration_history = []
+        self.temperature_history = []
+        self.runtime_hours = 0
+    
+    def collect_data(self, vibration, temperature):
+        """Collect sensor data"""
+        self.vibration_history.append(vibration)
+        self.temperature_history.append(temperature)
+        
+        # Keep last 1000 readings
+        if len(self.vibration_history) > 1000:
+            self.vibration_history.pop(0)
+            self.temperature_history.pop(0)
+    
+    def predict_failure(self):
+        """Predict potential failure"""
+        if len(self.vibration_history) < 100:
+            return {'status': 'insufficient_data'}
+        
+        # Calculate statistics
+        vib_mean = np.mean(self.vibration_history[-100:])
+        vib_std = np.std(self.vibration_history[-100:])
+        temp_mean = np.mean(self.temperature_history[-100:])
+        
+        # Check for anomalies
+        risk_score = 0
+        
+        if vib_mean > 5.0:  # Abnormal vibration
+            risk_score += 40
+        
+        if vib_std > 2.0:  # High variability
+            risk_score += 30
+        
+        if temp_mean > 75:  # Overheating
+            risk_score += 30
+        
+        if self.runtime_hours > 8000:  # Near service interval
+            risk_score += 20
+        
+        if risk_score < 30:
+            status = 'healthy'
+        elif risk_score < 60:
+            status = 'warning'
+        else:
+            status = 'critical'
+        
+        return {
+            'status': status,
+            'risk_score': risk_score,
+            'vibration_mean': vib_mean,
+            'temperature_mean': temp_mean,
+            'runtime_hours': self.runtime_hours
+        }
+```
+
+## OEE (Overall Equipment Effectiveness)
+
+```python
+class OEE_Calculator:
+    def __init__(self):
+        self.planned_production_time = 0
+        self.downtime = 0
+        self.ideal_cycle_time = 0
+        self.total_count = 0
+        self.defect_count = 0
+    
+    def calculate_oee(self):
+        """
+        OEE = Availability × Performance × Quality
+        """
+        # Availability
+        operating_time = self.planned_production_time - self.downtime
+        availability = operating_time / self.planned_production_time if self.planned_production_time > 0 else 0
+        
+        # Performance
+        ideal_production = operating_time / self.ideal_cycle_time if self.ideal_cycle_time > 0 else 0
+        performance = self.total_count / ideal_production if ideal_production > 0 else 0
+        
+        # Quality
+        good_count = self.total_count - self.defect_count
+        quality = good_count / self.total_count if self.total_count > 0 else 0
+        
+        oee = availability * performance * quality
+        
+        return {
+            'oee': oee * 100,  # as percentage
+            'availability': availability * 100,
+            'performance': performance * 100,
+            'quality': quality * 100
+        }
+```
+
+## Safety Systems
+
+### Safety Interlocks
+
+```cpp
+const int SAFETY_GATE = 2;
+const int LIGHT_CURTAIN = 3;
+const int E_STOP = 4;
+const int ENABLE_RELAY = 5;
+
+void setup() {
+  pinMode(SAFETY_GATE, INPUT_PULLUP);
+  pinMode(LIGHT_CURTAIN, INPUT);
+  pinMode(E_STOP, INPUT_PULLUP);
+  pinMode(ENABLE_RELAY, OUTPUT);
+}
+
+bool check_safety() {
+  // All safety devices must be OK
+  bool gate_closed = digitalRead(SAFETY_GATE) == LOW;
+  bool light_clear = digitalRead(LIGHT_CURTAIN) == HIGH;
+  bool e_stop_ok = digitalRead(E_STOP) == HIGH;
+  
+  return gate_closed && light_clear && e_stop_ok;
+}
+
+void loop() {
+  if (check_safety()) {
+    digitalWrite(ENABLE_RELAY, HIGH);  // Enable machine
+  } else {
+    digitalWrite(ENABLE_RELAY, LOW);   // Disable machine
+  }
+}
+```
+
+## Industry 4.0 & IoT
+
+- **Digital Twin**: Virtual representation of physical system
+- **Edge Computing**: Process data locally
+- **Cloud Integration**: Central monitoring and analytics
+- **Machine Learning**: Optimize processes
+- **Connectivity**: OPC UA, MQTT, REST APIs
+
+## Best Practices
+
+1. **Redundancy**: Critical systems have backups
+2. **Documentation**: Keep detailed records
+3. **Testing**: Validate before deployment
+4. **Training**: Operators must understand systems
+5. **Maintenance**: Regular preventive maintenance
+6. **Security**: Protect from cyber threats
+7. **Compliance**: Meet safety standards (ISO, OSHA)

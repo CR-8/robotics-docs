@@ -1,0 +1,332 @@
+---
+title: Power Management
+description: Power systems and battery management for combat robots
+---
+
+# Power Management
+
+Efficient power management is crucial for combat robots - maximize runtime while delivering peak power when needed.
+
+## Battery Selection for Combat
+
+### LiPo Batteries
+
+**Voltage (Cell Count)**:
+- 2S (7.4V): Ant/beetleweights
+- 3S (11.1V): Beetleweights
+- 4S (14.8V): Featherweights  
+- 6S (22.2V): Heavyweights
+
+**C-Rating for Combat**:
+- Minimum: 25C
+- Recommended: 50-75C
+- High performance: 100C+
+
+**Capacity Calculation**:
+```python
+def calculate_runtime(capacity_mah, current_draw_a):
+    """
+    Calculate battery runtime
+    
+    capacity_mah: Battery capacity in mAh
+    current_draw_a: Average current draw in amps
+    """
+    runtime_hours = capacity_mah / (current_draw_a * 1000)
+    runtime_minutes = runtime_hours * 60
+    return runtime_minutes
+
+# Example: 450mAh battery, 5A average draw
+runtime = calculate_runtime(450, 5)
+print(f"Runtime: {runtime:.1f} minutes")  # ~5.4 minutes
+```
+
+## Power Distribution
+
+### Simple Power System
+
+```
+[Battery] → [Main Switch] → [Power Distribution]
+                                    ├→ [Drive ESC 1]
+                                    ├→ [Drive ESC 2]
+                                    ├→ [Weapon ESC]
+                                    └→ [Receiver]
+```
+
+### Advanced Power System
+
+```
+[Battery] → [Removable Link] → [Anti-Spark Switch] → [PDB]
+                                                        ├→ [Drive ESCs]
+                                                        ├→ [Weapon ESC]
+                                                        └→ [BEC] → [Receiver/Servos]
+```
+
+## Anti-Spark Connectors
+
+Prevents sparking when connecting high-capacity batteries.
+
+**Options**:
+- XT60/XT90 with pre-charge resistor
+- Commercial anti-spark switches
+- Anderson Powerpole with XT60
+
+**DIY Anti-Spark Circuit**:
+```cpp
+// Electronic anti-spark with MOSFET
+const int MOSFET_PIN = 9;
+const int BUTTON_PIN = 2;
+
+void setup() {
+  pinMode(MOSFET_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+}
+
+void loop() {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    // Soft start: PWM ramp up
+    for (int i = 0; i < 255; i++) {
+      analogWrite(MOSFET_PIN, i);
+      delay(2);
+    }
+    digitalWrite(MOSFET_PIN, HIGH);  // Full on
+  } else {
+    digitalWrite(MOSFET_PIN, LOW);
+  }
+}
+```
+
+## Current Monitoring
+
+```cpp
+const int CURRENT_SENSOR_PIN = A0;
+const float SENSITIVITY = 0.066;  // 66mV per amp (ACS712-30A)
+
+float readCurrent() {
+  int reading = analogRead(CURRENT_SENSOR_PIN);
+  float voltage = reading * (5.0 / 1023.0);
+  float current = (voltage - 2.5) / SENSITIVITY;
+  return current;
+}
+
+void loop() {
+  float current = readCurrent();
+  
+  if (current > 30.0) {  // Overcurrent!
+    emergencyShutdown();
+  }
+  
+  delay(100);
+}
+```
+
+## Voltage Monitoring
+
+```cpp
+// Voltage divider for battery monitoring
+const float R1 = 10000.0;  // 10kΩ
+const float R2 = 2000.0;   // 2kΩ
+const int BATT_PIN = A1;
+
+float readBatteryVoltage() {
+  int reading = analogRead(BATT_PIN);
+  float measuredVoltage = reading * (5.0 / 1023.0);
+  float actualVoltage = measuredVoltage * (R1 + R2) / R2;
+  return actualVoltage;
+}
+
+void checkBattery() {
+  float voltage = readBatteryVoltage();
+  float perCell = voltage / 3.0;  // 3S battery
+  
+  if (perCell < 3.3) {  // Critical low
+    setWarningLED(true);
+  }
+}
+```
+
+## Power Budget Example
+
+**3lb Beetleweight**:
+
+| Component | Voltage | Current | Power |
+|-----------|---------|---------|-------|
+| Drive Motors (2x) | 11.1V | 8A ea | 177W |
+| Weapon Motor | 11.1V | 30A | 333W |
+| Receiver | 5V | 0.2A | 1W |
+| **Peak Total** | - | **46.2A** | **511W** |
+
+**Battery Selection**:
+- 3S 450mAh 75C → Max: 33.75A ❌ Insufficient!
+- 3S 650mAh 50C → Max: 32.5A ❌ Still low
+- 3S 850mAh 50C → Max: 42.5A ❌ Close but risky
+- **3S 650mAh 75C → Max: 48.75A ✅ Good!**
+
+## BEC (Battery Eliminator Circuit)
+
+Provides stable 5V/6V for receiver and servos.
+
+**Types**:
+- Linear BEC: Simple, inefficient, limited current
+- Switching BEC: Efficient, higher current
+- UBEC (Universal BEC): Adjustable voltage
+
+**Sizing**:
+```python
+def size_bec(receiver_current, num_servos, servo_current_each):
+    """Calculate required BEC current rating"""
+    total_current = receiver_current + (num_servos * servo_current_each)
+    recommended = total_current * 1.5  # 50% safety margin
+    return recommended
+
+# Example
+bec_rating = size_bec(
+    receiver_current=0.2,    # 200mA receiver
+    num_servos=2,            # 2 servos
+    servo_current_each=1.0   # 1A each under load
+)
+print(f"BEC rating needed: {bec_rating:.1f}A")  # 3.3A
+```
+
+## Capacitors for Stability
+
+**Purpose**:
+- Smooth voltage spikes
+- Filter ESC noise
+- Protect electronics
+
+**Sizing**:
+```
+Capacitance (µF) = Peak Current (A) × Time (µs) / Voltage Drop (V)
+```
+
+**Typical Values**:
+- Drive ESCs: 470µF - 1000µF per ESC
+- Weapon ESC: 2200µF - 4700µF
+- Voltage: Must exceed battery voltage (use 25V for 3S/4S)
+
+## Wire Gauge Selection
+
+| Current (A) | Wire Gauge (AWG) | Diameter (mm) |
+|-------------|------------------|---------------|
+| < 10A | 18 AWG | 1.0 |
+| 10-20A | 16 AWG | 1.3 |
+| 20-35A | 14 AWG | 1.6 |
+| 35-50A | 12 AWG | 2.0 |
+| 50-80A | 10 AWG | 2.6 |
+
+**Length Matters**: Add 2 AWG for runs > 1 meter
+
+## Connector Selection
+
+| Connector | Current Rating | Use Case |
+|-----------|---------------|----------|
+| JST | 3A | Small signals |
+| XT30 | 30A | Ant/beetle drives |
+| XT60 | 60A | Beetle weapons |
+| XT90 | 90A | Feather+ weapons |
+| Deans/T-Plug | 60A | Alternative to XT60 |
+
+## Safety Systems
+
+### Fuse Protection
+
+```python
+def select_fuse(continuous_current, peak_current):
+    """
+    Select fuse rating
+    
+    continuous_current: Normal operating current
+    peak_current: Maximum expected current
+    """
+    # Fuse should be 125-150% of continuous
+    fuse_rating = continuous_current * 1.35
+    
+    # But must handle peak
+    if fuse_rating < peak_current:
+        print("⚠️ Warning: Fuse may blow during peaks")
+    
+    return fuse_rating
+
+fuse = select_fuse(continuous_current=20, peak_current=45)
+print(f"Fuse rating: {fuse:.0f}A")
+```
+
+### Removable Link
+
+Required by most competitions:
+
+```
+[Battery +] → [Removable Link] → [Main Switch] → [System]
+```
+
+**Implementation**:
+- XT60 connector
+- Anderson Powerpole
+- Custom PCB with pin headers
+
+## LiPo Safety
+
+### Charging
+- Use balance charger
+- Never exceed 1C charge rate
+- Charge in LiPo bag
+- Never leave unattended
+
+### Storage
+- Store at 3.8V per cell
+- Use LiPo bags
+- Cool, dry place
+- Away from flammables
+
+### Disposal
+- Discharge to 0V (salt water)
+- Recycle at battery centers
+
+### Warning Signs ⚠️
+- **Puffy battery**: STOP using immediately
+- **Hot during charge**: Disconnect
+- **Damaged casing**: Replace
+- **Smell**: Chemical odor = danger
+
+## Power Optimization
+
+### Reduce Current Draw
+```cpp
+// Use ramping for spinners
+void rampWeapon(int targetSpeed) {
+  int currentSpeed = getCurrentSpeed();
+  int step = (targetSpeed > currentSpeed) ? 10 : -10;
+  
+  while (abs(currentSpeed - targetSpeed) > 5) {
+    currentSpeed += step;
+    setWeaponSpeed(currentSpeed);
+    delay(20);  // Ramp over time
+  }
+}
+```
+
+### Efficient Control
+- Avoid rapid direction changes
+- Use smooth acceleration
+- Implement current limiting
+- Monitor battery voltage
+
+## Troubleshooting
+
+**Motor won't spin**:
+- Check battery voltage
+- Verify ESC connections
+- Test with multimeter
+- Check for blown fuse
+
+**Random resets**:
+- Voltage sag (undersized battery)
+- Loose connections
+- Add capacitors
+- Improve wire gauge
+
+**ESC overheating**:
+- Excessive current
+- Poor ventilation
+- Underrated ESC
+- Add heatsink

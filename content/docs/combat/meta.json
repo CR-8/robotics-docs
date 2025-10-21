@@ -1,0 +1,5 @@
+{
+  "title": "Combat Robotics",
+  "icon": "Shield",
+  "pages": ["chassis-design", "weapons-system", "power"]
+}

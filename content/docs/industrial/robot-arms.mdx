@@ -1,0 +1,395 @@
+---
+title: Robot Arms & Manipulators
+description: Industrial robot arms and manipulation systems
+---
+
+# Robot Arms & Manipulators
+
+Industrial robot arms are the workhorses of modern automation, performing precise, repeatable tasks.
+
+## Robot Arm Basics
+
+### Degrees of Freedom (DOF)
+
+**3-DOF**: Basic positioning (XYZ)
+**4-DOF**: 3-DOF + wrist rotation
+**5-DOF**: Near-full orientation
+**6-DOF**: Full positioning + orientation (industry standard)
+**7-DOF+**: Redundant, obstacle avoidance
+
+### Common Configurations
+
+#### Cartesian (Gantry)
+```
+    Z
+    |
+    +---Y
+   /
+  X
+```
+- Linear axes (X, Y, Z)
+- Simple kinematics
+- Large workspace
+- **Use**: 3D printers, CNC, pick-and-place
+
+#### SCARA (Selective Compliance Assembly Robot Arm)
+- Fast horizontal movement
+- Rigid in Z-axis
+- **Use**: Assembly, packaging
+
+#### Articulated (6-DOF)
+- Most versatile
+- Complex kinematics
+- Human-like motion
+- **Use**: Welding, painting, assembly
+
+## Kinematics
+
+### Forward Kinematics
+
+Calculate end-effector position from joint angles.
+
+```python
+import numpy as np
+
+def forward_kinematics_2dof(theta1, theta2, l1, l2):
+    """
+    Simple 2-DOF arm forward kinematics
+    
+    theta1, theta2: Joint angles in radians
+    l1, l2: Link lengths
+    """
+    x = l1 * np.cos(theta1) + l2 * np.cos(theta1 + theta2)
+    y = l1 * np.sin(theta1) + l2 * np.sin(theta1 + theta2)
+    
+    return (x, y)
+
+# Example
+x, y = forward_kinematics_2dof(
+    theta1=np.radians(45),
+    theta2=np.radians(30),
+    l1=10,
+    l2=8
+)
+print(f"End effector at: ({x:.2f}, {y:.2f})")
+```
+
+### Inverse Kinematics
+
+Calculate joint angles needed to reach a target position.
+
+```python
+def inverse_kinematics_2dof(x, y, l1, l2):
+    """
+    2-DOF arm inverse kinematics
+    Returns (theta1, theta2) in radians
+    """
+    # Distance to target
+    d = np.sqrt(x**2 + y**2)
+    
+    # Check if reachable
+    if d > (l1 + l2) or d < abs(l1 - l2):
+        return None  # Out of reach
+    
+    # Law of cosines
+    cos_theta2 = (d**2 - l1**2 - l2**2) / (2 * l1 * l2)
+    theta2 = np.arccos(cos_theta2)
+    
+    # Solve for theta1
+    k1 = l1 + l2 * np.cos(theta2)
+    k2 = l2 * np.sin(theta2)
+    theta1 = np.arctan2(y, x) - np.arctan2(k2, k1)
+    
+    return (theta1, theta2)
+
+# Example
+target_x, target_y = 15, 10
+angles = inverse_kinematics_2dof(target_x, target_y, l1=10, l2=8)
+if angles:
+    print(f"Joint angles: {np.degrees(angles[0]):.1f}°, {np.degrees(angles[1]):.1f}°")
+```
+
+## Servo Control
+
+### Position Control
+
+```cpp
+#include <Servo.h>
+
+Servo shoulder, elbow, wrist;
+
+void setup() {
+  shoulder.attach(9);
+  elbow.attach(10);
+  wrist.attach(11);
+}
+
+void moveToPosition(int shoulderAngle, int elbowAngle, int wristAngle) {
+  shoulder.write(shoulderAngle);
+  elbow.write(elbowAngle);
+  wrist.write(wristAngle);
+}
+
+void smoothMove(int joint[], int target[], int steps) {
+  for (int step = 0; step < steps; step++) {
+    shoulder.write(interpolate(joint[0], target[0], step, steps));
+    elbow.write(interpolate(joint[1], target[1], step, steps));
+    wrist.write(interpolate(joint[2], target[2], step, steps));
+    delay(20);
+  }
+}
+
+int interpolate(int start, int end, int current, int total) {
+  return start + (end - start) * current / total;
+}
+```
+
+### Trajectory Planning
+
+```python
+class TrajectoryPlanner:
+    def __init__(self, max_velocity, max_acceleration):
+        self.max_vel = max_velocity
+        self.max_acc = max_acceleration
+    
+    def plan_trajectory(self, start, goal, dt=0.01):
+        """Generate smooth trajectory with velocity limits"""
+        distance = abs(goal - start)
+        direction = 1 if goal > start else -1
+        
+        # Acceleration phase
+        t_acc = self.max_vel / self.max_acc
+        d_acc = 0.5 * self.max_acc * t_acc**2
+        
+        trajectory = []
+        time = []
+        t = 0
+        pos = start
+        vel = 0
+        
+        while abs(pos - goal) > 0.01:
+            # Determine if accelerating, constant, or decelerating
+            remaining = abs(goal - pos)
+            
+            if remaining > d_acc and vel < self.max_vel:
+                # Accelerate
+                acc = self.max_acc * direction
+            elif remaining <= d_acc:
+                # Decelerate
+                acc = -self.max_acc * direction
+            else:
+                # Constant velocity
+                acc = 0
+            
+            vel += acc * dt
+            vel = np.clip(vel, -self.max_vel, self.max_vel)
+            pos += vel * dt
+            
+            trajectory.append(pos)
+            time.append(t)
+            t += dt
+        
+        return time, trajectory
+```
+
+## End Effectors
+
+### Gripper Types
+
+**Parallel Jaw**:
+```cpp
+#include <Servo.h>
+
+class ParallelGripper {
+  private:
+    Servo gripperServo;
+    int openAngle = 90;
+    int closeAngle = 0;
+    
+  public:
+    void attach(int pin) {
+      gripperServo.attach(pin);
+    }
+    
+    void open() {
+      gripperServo.write(openAngle);
+    }
+    
+    void close() {
+      gripperServo.write(closeAngle);
+    }
+    
+    void setPosition(int percent) {
+      int angle = map(percent, 0, 100, closeAngle, openAngle);
+      gripperServo.write(angle);
+    }
+};
+```
+
+**Vacuum Gripper**:
+- Suction cups
+- Venturi generator or vacuum pump
+- Works on smooth, flat objects
+
+**Magnetic Gripper**:
+- Electromagnet
+- Only for ferromagnetic materials
+- Simple on/off control
+
+## Collision Avoidance
+
+```python
+def check_collision(joint_positions, obstacle_position, safety_margin=0.1):
+    """
+    Check if arm collides with obstacle
+    
+    joint_positions: List of (x, y) tuples for each joint
+    obstacle_position: (x, y, radius) of circular obstacle
+    safety_margin: Extra distance to maintain
+    """
+    obs_x, obs_y, obs_radius = obstacle_position
+    
+    for i in range(len(joint_positions) - 1):
+        # Check each link
+        p1 = joint_positions[i]
+        p2 = joint_positions[i + 1]
+        
+        # Distance from point to line segment
+        dist = distance_point_to_segment((obs_x, obs_y), p1, p2)
+        
+        if dist < (obs_radius + safety_margin):
+            return True  # Collision!
+    
+    return False  # Safe
+
+def distance_point_to_segment(point, seg_start, seg_end):
+    """Calculate minimum distance from point to line segment"""
+    px, py = point
+    x1, y1 = seg_start
+    x2, y2 = seg_end
+    
+    dx = x2 - x1
+    dy = y2 - y1
+    
+    if dx == 0 and dy == 0:
+        return np.sqrt((px - x1)**2 + (py - y1)**2)
+    
+    t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / (dx**2 + dy**2)))
+    
+    nearest_x = x1 + t * dx
+    nearest_y = y1 + t * dy
+    
+    return np.sqrt((px - nearest_x)**2 + (py - nearest_y)**2)
+```
+
+## ROS Integration
+
+```python
+#!/usr/bin/env python
+import rospy
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from sensor_msgs.msg import JointState
+
+class RobotArmController:
+    def __init__(self):
+        rospy.init_node('arm_controller')
+        
+        # Publishers
+        self.traj_pub = rospy.Publisher(
+            '/arm/joint_trajectory',
+            JointTrajectory,
+            queue_size=10
+        )
+        
+        # Subscribers
+        rospy.Subscriber('/arm/joint_states', JointState, self.joint_callback)
+        
+        self.current_position = None
+    
+    def joint_callback(self, msg):
+        self.current_position = msg.position
+    
+    def move_to_position(self, joint_positions, duration=2.0):
+        traj = JointTrajectory()
+        traj.joint_names = ['joint1', 'joint2', 'joint3', 'joint4', 'joint5', 'joint6']
+        
+        point = JointTrajectoryPoint()
+        point.positions = joint_positions
+        point.time_from_start = rospy.Duration(duration)
+        
+        traj.points.append(point)
+        self.traj_pub.publish(traj)
+    
+    def home(self):
+        home_position = [0, 0, 0, 0, 0, 0]
+        self.move_to_position(home_position)
+```
+
+## Safety Considerations
+
+### Workspace Limits
+
+```python
+class WorkspaceLimits:
+    def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max):
+        self.limits = {
+            'x': (x_min, x_max),
+            'y': (y_min, y_max),
+            'z': (z_min, z_max)
+        }
+    
+    def is_safe(self, position):
+        x, y, z = position
+        
+        if not (self.limits['x'][0] <= x <= self.limits['x'][1]):
+            return False
+        if not (self.limits['y'][0] <= y <= self.limits['y'][1]):
+            return False
+        if not (self.limits['z'][0] <= z <= self.limits['z'][1]):
+            return False
+        
+        return True
+```
+
+### Emergency Stop
+
+```cpp
+const int E_STOP_PIN = 2;
+const int ENABLE_PIN = 3;
+
+void setup() {
+  pinMode(E_STOP_PIN, INPUT_PULLUP);
+  pinMode(ENABLE_PIN, OUTPUT);
+  
+  attachInterrupt(digitalPinToInterrupt(E_STOP_PIN), emergencyStop, FALLING);
+}
+
+void emergencyStop() {
+  digitalWrite(ENABLE_PIN, LOW);  // Cut power to motors
+  // Log event
+  // Alert operator
+}
+```
+
+## Popular Robot Arm Projects
+
+### DIY Options
+- **BCN3D Moveo**: Open-source 5-DOF arm
+- **Thor Robot Arm**: 3D printable 6-DOF
+- **uArm**: Desktop robot arm kit
+- **Dobot Magician**: Educational platform
+
+### Industrial
+- **Universal Robots**: UR3, UR5, UR10 (collaborative)
+- **KUKA**: KR series
+- **ABB**: IRB series
+- **FANUC**: M-series
+
+## Applications
+
+- **Pick and Place**: Sorting, packaging
+- **Assembly**: Screwing, gluing
+- **Welding**: Automotive, shipbuilding
+- **Painting**: Spray coating
+- **Inspection**: Quality control
+- **3D Printing**: Large-scale additive manufacturing

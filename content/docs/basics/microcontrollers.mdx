@@ -1,0 +1,153 @@
+---
+title: Microcontrollers
+description: Brains of your robot - choosing the right microcontroller
+---
+
+# Microcontrollers
+
+Microcontrollers are the computational heart of most robots, executing control logic and interfacing with sensors and actuators.
+
+## Popular Platforms
+
+### Arduino
+
+**Arduino Uno**
+- **MCU**: ATmega328P
+- **Clock**: 16 MHz
+- **Memory**: 32KB Flash, 2KB RAM
+- **I/O**: 14 digital, 6 analog
+- **Use**: Learning, simple projects
+- **Cost**: $20-25
+
+**Arduino Mega**
+- **MCU**: ATmega2560
+- **I/O**: 54 digital, 16 analog
+- **Use**: Multi-sensor robots, complex projects
+
+**Arduino Nano**
+- **Compact**: Breadboard-friendly
+- **Use**: Space-constrained projects
+
+### ESP32
+
+- **MCU**: Dual-core Tensilica LX6
+- **Clock**: Up to 240 MHz
+- **Connectivity**: WiFi + Bluetooth
+- **Memory**: 520KB RAM, 4MB Flash
+- **Use**: IoT robots, wireless control
+- **Cost**: $5-10
+
+### Raspberry Pi
+
+**Raspberry Pi 4**
+- **CPU**: Quad-core ARM Cortex-A72 1.5GHz
+- **RAM**: 2GB/4GB/8GB
+- **OS**: Linux-based (Raspberry Pi OS)
+- **Use**: Computer vision, AI, complex algorithms
+- **Cost**: $35-75
+
+**Raspberry Pi Pico**
+- **MCU**: RP2040 (Dual ARM Cortex-M0+)
+- **Clock**: 133 MHz
+- **Use**: Low-cost, microcontroller projects
+- **Cost**: $4
+
+### STM32
+
+- **Performance**: High-speed ARM processors
+- **Efficiency**: Low power consumption
+- **Use**: Professional robotics, drones
+- **Popular**: STM32F4, STM32F7 series
+
+## Comparison Table
+
+| Platform | Processing Power | Connectivity | Best For | Price |
+|----------|-----------------|--------------|----------|-------|
+| Arduino Uno | Low | USB | Learning, Simple | $ |
+| ESP32 | Medium | WiFi, BT | IoT, Wireless | $ |
+| Raspberry Pi 4 | High | WiFi, Ethernet | Vision, AI | $$$ |
+| STM32 | Medium-High | Varies | Pro Projects | $$ |
+
+## Choosing the Right MCU
+
+### For Beginners
+→ **Arduino Uno**: Large community, easy to learn
+
+### For Wireless Control
+→ **ESP32**: Built-in WiFi/Bluetooth
+
+### For Computer Vision
+→ **Raspberry Pi 4**: Can run OpenCV, TensorFlow
+
+### For Battery-Powered
+→ **ESP32** or **STM32**: Low power modes
+
+### For Real-Time Control
+→ **STM32** or **Teensy**: Hardware interrupts, RTOS
+
+## Programming Languages
+
+- **Arduino**: C/C++ (Arduino IDE)
+- **ESP32**: C/C++, MicroPython, Arduino
+- **Raspberry Pi**: Python, C++, Java, Node.js
+- **STM32**: C/C++ (STM32CubeIDE, PlatformIO)
+
+## Example Code
+
+### Arduino - Blink LED
+```cpp
+void setup() {
+  pinMode(LED_BUILTIN, OUTPUT);
+}
+
+void loop() {
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(1000);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(1000);
+}
+```
+
+### ESP32 - WiFi Connection
+```cpp
+#include <WiFi.h>
+
+const char* ssid = "YourSSID";
+const char* password = "YourPassword";
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  
+  Serial.println("\nConnected!");
+  Serial.println(WiFi.localIP());
+}
+
+void loop() {
+  // Your code here
+}
+```
+
+### Raspberry Pi - Python GPIO
+```python
+import RPi.GPIO as GPIO
+import time
+
+LED_PIN = 18
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(LED_PIN, GPIO.OUT)
+
+try:
+    while True:
+        GPIO.output(LED_PIN, GPIO.HIGH)
+        time.sleep(1)
+        GPIO.output(LED_PIN, GPIO.LOW)
+        time.sleep(1)
+except KeyboardInterrupt:
+    GPIO.cleanup()
+```

@@ -1,0 +1,443 @@
+---
+title: Weapons Systems
+description: Designing and implementing combat robot weapons
+---
+
+# Weapons Systems
+
+Weapons are what make combat robotics exciting. From spinners to flippers, each weapon type requires unique engineering.
+
+## Weapon Types
+
+### Kinetic Weapons
+
+#### Horizontal Spinner
+
+**Design**:
+- Large disc or bar
+- High RPM (5000-15000)
+- Maximum kinetic energy
+
+**Energy Calculation**:
+```python
+import math
+
+def spinner_energy(mass_kg, radius_m, rpm):
+    """Calculate spinner kinetic energy in joules"""
+    # Convert RPM to rad/s
+    omega = rpm * 2 * math.pi / 60
+    
+    # Moment of inertia for disc: I = 0.5 * m * r^2
+    I = 0.5 * mass_kg * radius_m**2
+    
+    # Kinetic energy: E = 0.5 * I * ω^2
+    energy = 0.5 * I * omega**2
+    
+    return energy
+
+# Example: 2kg disc, 10cm radius, 10000 RPM
+print(f"Energy: {spinner_energy(2, 0.1, 10000):.0f} joules")
+# Output: Energy: 1096 joules
+```
+
+**Components**:
+- Brushless motor (>1000W for beetleweight)
+- ESC with active braking
+- Hardened teeth (AR400/500 steel)
+- Shock-mounted electronics
+
+#### Vertical Spinner
+
+**Advantages**:
+- Gyroscopic stabilization
+- Can't be stuck on side
+- Easier to drive
+
+**Disadvantages**:
+- Lower hit energy than horizontal
+- Turning issues (gyro effect)
+
+**Motor Selection**:
+```
+Required Power (W) = Spinner Mass (kg) × Spin-up Time (s) × Energy (J) / Efficiency
+```
+
+#### Drum Spinner
+
+**Design**:
+- Rotating cylinder with teeth
+- Acts as a wheel
+- Continuous engagement
+
+**Materials**:
+- Aluminum body
+- Hardened steel teeth
+- TPU shock absorption
+
+### Lifting/Control Weapons
+
+#### Flipper
+
+**Mechanism**:
+- CO2 or compressed air
+- Solenoid valve
+- High pressure (800-1000 PSI)
+
+```python
+def calculate_flip_force(pressure_psi, piston_area_in2, arm_length_in, pivot_distance_in):
+    """
+    Calculate flipping force
+    
+    pressure_psi: Air pressure in PSI
+    piston_area_in2: Piston cross-sectional area
+    arm_length_in: Length of flipper arm
+    pivot_distance_in: Distance from pivot to piston
+    """
+    # Force from pneumatic cylinder
+    piston_force = pressure_psi * piston_area_in2
+    
+    # Torque at pivot
+    torque = piston_force * pivot_distance_in
+    
+    # Force at tip of arm
+    tip_force = torque / arm_length_in
+    
+    return tip_force
+
+# Example
+force = calculate_flip_force(
+    pressure_psi=800,
+    piston_area_in2=0.5,  # 0.8" diameter piston
+    arm_length_in=6,
+    pivot_distance_in=2
+)
+print(f"Tip force: {force:.1f} lbf")
+```
+
+**Safety**:
+- Pressure relief valve
+- Secure tank mounting
+- DOT approved tanks
+- Removable fill valve
+
+#### Lifter
+
+**Types**:
+- Electric: Servo or motor driven
+- Pneumatic: Air cylinder
+- Hydraulic: Rare in combat
+
+**Electric Lifter**:
+```cpp
+#include <Servo.h>
+
+Servo lifterServo;
+const int LIFTED = 180;
+const int LOWERED = 0;
+
+void setup() {
+  lifterServo.attach(9);
+  pinMode(2, INPUT_PULLUP);  // Lift button
+}
+
+void loop() {
+  if (digitalRead(2) == LOW) {
+    lifterServo.write(LIFTED);
+  } else {
+    lifterServo.write(LOWERED);
+  }
+}
+```
+
+### Crushing/Gripping Weapons
+
+#### Crusher
+
+**Design Requirements**:
+- High torque motor/servo
+- Strong jaw material
+- Force concentration (spikes)
+
+**Force Calculation**:
+```python
+def crushing_force(motor_torque_nm, gear_ratio, jaw_length_m):
+    """
+    Calculate crushing force at jaw tip
+    
+    motor_torque_nm: Motor torque in Newton-meters
+    gear_ratio: Gear reduction (e.g., 100:1 = 100)
+    jaw_length_m: Length from pivot to jaw tip
+    """
+    total_torque = motor_torque_nm * gear_ratio
+    force_newtons = total_torque / jaw_length_m
+    force_lbs = force_newtons * 0.2248  # Convert to pounds
+    
+    return force_lbs
+
+# Example: Linear actuator crusher
+force = crushing_force(
+    motor_torque_nm=0.5,
+    gear_ratio=200,
+    jaw_length_m=0.1
+)
+print(f"Crushing force: {force:.0f} lbs")
+```
+
+### Exotic Weapons
+
+#### Flamethrower
+- Butane/propane fuel
+- Electric ignition
+- Fireproof internals
+- ⚠️ Check event rules!
+
+#### Hammer
+- Pneumatic or spring powered
+- Hardened steel head
+- Requires precise timing
+
+#### Saw
+- Rotating blade
+- Limited effectiveness
+- Looks cool
+
+## Motor Selection
+
+### Brushless Motors for Spinners
+
+**Key Specs**:
+- KV rating (RPM per volt)
+- Power rating (watts)
+- Weight
+- Shaft diameter
+
+**Popular Models**:
+
+| Motor | KV | Power | Weight | Use |
+|-------|---|-------|--------|-----|
+| Turnigy SK3 2826 | 1130 | 1100W | 96g | Beetle spinner |
+| Propdrive 5060 | 540 | 1800W | 230g | Feather spinner |
+| Scorpion HKIII | 190 | 4000W | 500g | Heavy spinner |
+
+**Choosing KV**:
+```python
+def calculate_rpm(battery_voltage, motor_kv, load_factor=0.8):
+    """
+    battery_voltage: Nominal voltage (e.g., 11.1V for 3S)
+    motor_kv: Motor KV rating
+    load_factor: Efficiency under load (typically 0.7-0.8)
+    """
+    max_rpm = battery_voltage * motor_kv * load_factor
+    return max_rpm
+
+# Example: 3S battery (11.1V), 1000KV motor
+rpm = calculate_rpm(11.1, 1000)
+print(f"Expected RPM: {rpm:.0f}")  # ~8880 RPM
+```
+
+### ESC (Electronic Speed Controller)
+
+**Requirements**:
+- High continuous current rating (2x motor spec)
+- Active braking
+- BEC for receiver (if needed)
+- Firmware: BLHeli_32, SimonK
+
+**Sizing**:
+```python
+def size_esc(motor_max_current, safety_factor=1.5):
+    """
+    motor_max_current: Peak motor current in amps
+    safety_factor: Multiplier for burst capacity
+    """
+    required_esc_rating = motor_max_current * safety_factor
+    
+    # Round up to common ESC ratings
+    common_ratings = [20, 30, 40, 50, 60, 80, 100, 120, 150, 200]
+    for rating in common_ratings:
+        if rating >= required_esc_rating:
+            return rating
+    
+    return common_ratings[-1]
+
+# Example
+esc_rating = size_esc(motor_max_current=60)
+print(f"Recommended ESC: {esc_rating}A")
+```
+
+## Weapon Control
+
+### Spinner Control
+
+```cpp
+// Weapon safety: Only spin up after delay
+const int WEAPON_PIN = 9;
+const int ENABLE_PIN = 2;
+unsigned long enableTime = 0;
+const int SPINUP_DELAY = 3000;  // 3 seconds
+
+void setup() {
+  pinMode(WEAPON_PIN, OUTPUT);
+  pinMode(ENABLE_PIN, INPUT_PULLUP);
+}
+
+void loop() {
+  if (digitalRead(ENABLE_PIN) == LOW) {
+    if (enableTime == 0) {
+      enableTime = millis();
+    }
+    
+    if (millis() - enableTime > SPINUP_DELAY) {
+      // Weapon armed
+      int weaponSpeed = pulseIn(3, HIGH);  // From RC receiver
+      analogWrite(WEAPON_PIN, map(weaponSpeed, 1000, 2000, 0, 255));
+    }
+  } else {
+    enableTime = 0;
+    analogWrite(WEAPON_PIN, 0);  // Stop weapon
+  }
+}
+```
+
+### Pneumatic Control
+
+```cpp
+const int VALVE_PIN = 10;
+const int FIRE_BUTTON = 2;
+const int FIRE_DURATION = 200;  // ms
+
+void loop() {
+  if (digitalRead(FIRE_BUTTON) == LOW) {
+    digitalWrite(VALVE_PIN, HIGH);  // Open valve
+    delay(FIRE_DURATION);
+    digitalWrite(VALVE_PIN, LOW);   // Close valve
+    delay(500);  // Prevent rapid fire
+  }
+}
+```
+
+## Safety Mechanisms
+
+### Removable Link
+
+Essential for all competitions:
+
+```cpp
+const int WEAPON_LINK_PIN = A0;
+
+bool isWeaponEnabled() {
+  // Link creates voltage divider
+  int reading = analogRead(WEAPON_LINK_PIN);
+  return reading > 512;  // Link present
+}
+
+void loop() {
+  if (!isWeaponEnabled()) {
+    stopAllWeapons();
+    return;
+  }
+  
+  // Normal weapon control...
+}
+```
+
+### Failsafe
+
+```cpp
+unsigned long lastSignal = 0;
+const int FAILSAFE_TIMEOUT = 500;  // ms
+
+void loop() {
+  if (receiverHasSignal()) {
+    lastSignal = millis();
+    // Normal operation
+  }
+  
+  if (millis() - lastSignal > FAILSAFE_TIMEOUT) {
+    // Signal lost - STOP EVERYTHING
+    stopMotors();
+    stopWeapon();
+    setLED(RED);
+  }
+}
+```
+
+## Weapon Design Tips
+
+### Do's ✅
+- **Shock mount electronics**: Isolate from weapon vibration
+- **Use thread locker**: Everything will vibrate loose
+- **Balance spinner**: Prevents bearing destruction
+- **Test incrementally**: Start at low power
+- **Protect wires**: Use cable glands, secure routing
+
+### Don'ts ❌
+- **Overvolt motors**: Stick to rated voltage
+- **Cheap ESCs**: They will fail spectacularly
+- **Loose batteries**: Secure with velcro + zip ties
+- **Sharp edges everywhere**: Safety hazard
+- **Ignore weight**: Every gram counts
+
+## Spinner Design Example
+
+```python
+class SpinnerDesign:
+    def __init__(self, weight_limit_g):
+        self.weight_limit = weight_limit_g
+        
+    def design_disc(self, material_density, thickness_m, max_radius_m):
+        """
+        Design a disc spinner within weight limit
+        
+        material_density: kg/m^3 (Aluminum: 2700, Steel: 7850)
+        thickness_m: Disc thickness in meters
+        max_radius_m: Maximum radius to try
+        """
+        import math
+        
+        # Volume of disc: V = π * r^2 * thickness
+        volume = math.pi * max_radius_m**2 * thickness_m
+        
+        # Mass in grams
+        mass_g = volume * material_density * 1000
+        
+        if mass_g > self.weight_limit:
+            # Scale down radius
+            scale = (self.weight_limit / mass_g) ** 0.5
+            actual_radius = max_radius_m * scale
+            actual_mass = mass_g * scale**2
+        else:
+            actual_radius = max_radius_m
+            actual_mass = mass_g
+        
+        return {
+            'radius_m': actual_radius,
+            'mass_g': actual_mass,
+            'thickness_m': thickness_m,
+            'material_density': material_density
+        }
+
+# Design a spinner for 3lb (1361g) beetle, 400g weapon budget
+designer = SpinnerDesign(weight_limit_g=400)
+disc = designer.design_disc(
+    material_density=2700,  # Aluminum
+    thickness_m=0.01,       # 10mm thick
+    max_radius_m=0.08       # 80mm radius
+)
+
+print(f"Disc radius: {disc['radius_m']*1000:.1f}mm")
+print(f"Disc mass: {disc['mass_g']:.1f}g")
+```
+
+## Competition Readiness Checklist
+
+- [ ] Weapon removable link installed
+- [ ] All fasteners thread-locked
+- [ ] Battery secured
+- [ ] Wires protected and secured
+- [ ] Failsafe tested
+- [ ] Weight verified
+- [ ] Weapon safety tested
+- [ ] Spare parts packed
+- [ ] Tools and hex keys
+- [ ] Battery charger and storage bag

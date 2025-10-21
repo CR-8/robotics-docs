@@ -1,0 +1,184 @@
+---
+title: Control Algorithms
+description: Algorithms for semi-autonomous robot control
+---
+
+# Control Algorithms
+
+Control algorithms enable robots to respond to sensor inputs and maintain desired behaviors.
+
+## PID Control
+
+**Proportional-Integral-Derivative (PID)** is the most widely used control algorithm in robotics.
+
+### Components
+
+- **P (Proportional)**: Responds to current error
+- **I (Integral)**: Responds to accumulated past errors
+- **D (Derivative)**: Responds to rate of error change
+
+### PID Formula
+
+```
+Output = Kp × error + Ki × ∫error dt + Kd × d(error)/dt
+```
+
+### Tuning PID
+
+1. **Start with P**: Increase until oscillation
+2. **Add D**: Reduce oscillation
+3. **Add I**: Eliminate steady-state error
+
+### Example: Line Following Robot
+
+```cpp
+float Kp = 1.0, Ki = 0.1, Kd = 0.5;
+float error = 0, lastError = 0, integral = 0;
+
+void loop() {
+  int sensorValue = analogRead(A0);
+  int setpoint = 512;  // Center position
+  
+  error = setpoint - sensorValue;
+  integral += error;
+  float derivative = error - lastError;
+  
+  float output = Kp * error + Ki * integral + Kd * derivative;
+  
+  // Apply to motors
+  setMotorSpeed(baseSpeed + output, baseSpeed - output);
+  
+  lastError = error;
+  delay(10);
+}
+```
+
+## Bang-Bang Control
+
+Simple on/off control - easier to implement but less smooth.
+
+```cpp
+if (temperature < setpoint) {
+  heater_on();
+} else {
+  heater_off();
+}
+```
+
+**Use Cases**: Thermostats, simple positioning
+
+## State Machines
+
+Organize robot behavior into discrete states.
+
+```cpp
+enum State { IDLE, SEARCHING, FOLLOWING, AVOIDING };
+State currentState = IDLE;
+
+void loop() {
+  switch(currentState) {
+    case IDLE:
+      if (lineDetected()) currentState = FOLLOWING;
+      break;
+    
+    case FOLLOWING:
+      followLine();
+      if (obstacleDetected()) currentState = AVOIDING;
+      break;
+    
+    case AVOIDING:
+      avoidObstacle();
+      if (pathClear()) currentState = FOLLOWING;
+      break;
+  }
+}
+```
+
+## Kalman Filter
+
+Combines noisy sensor data for better estimates.
+
+**Applications**:
+- Sensor fusion (IMU + GPS)
+- Position estimation
+- Noise reduction
+
+```python
+# Simplified 1D Kalman Filter
+class KalmanFilter:
+    def __init__(self, process_variance, measurement_variance, initial_value):
+        self.process_variance = process_variance
+        self.measurement_variance = measurement_variance
+        self.estimate = initial_value
+        self.estimate_error = 1.0
+    
+    def update(self, measurement):
+        # Prediction
+        prediction_error = self.estimate_error + self.process_variance
+        
+        # Update
+        kalman_gain = prediction_error / (prediction_error + self.measurement_variance)
+        self.estimate = self.estimate + kalman_gain * (measurement - self.estimate)
+        self.estimate_error = (1 - kalman_gain) * prediction_error
+        
+        return self.estimate
+```
+
+## Path Planning Algorithms
+
+### A* (A-Star)
+- Finds shortest path on grid
+- Uses heuristics for efficiency
+
+### Dijkstra's Algorithm
+- Guaranteed shortest path
+- Slower than A*
+
+### Potential Fields
+- Treats obstacles as repulsive forces
+- Goal as attractive force
+- Robot follows gradient
+
+## Motion Control
+
+### Differential Drive
+
+```python
+def set_velocity(linear_vel, angular_vel):
+    wheel_base = 0.2  # meters
+    left_vel = linear_vel - (angular_vel * wheel_base / 2)
+    right_vel = linear_vel + (angular_vel * wheel_base / 2)
+    return left_vel, right_vel
+```
+
+### Odometry
+
+```python
+def update_position(left_ticks, right_ticks, wheel_radius, wheel_base):
+    left_distance = left_ticks * wheel_radius * 2 * pi / ticks_per_rev
+    right_distance = right_ticks * wheel_radius * 2 * pi / ticks_per_rev
+    
+    distance = (left_distance + right_distance) / 2
+    angle = (right_distance - left_distance) / wheel_base
+    
+    x += distance * cos(heading)
+    y += distance * sin(heading)
+    heading += angle
+```
+
+## Reactive vs. Deliberative Control
+
+### Reactive (Bottom-up)
+- Fast response to sensors
+- No planning
+- Example: Obstacle avoidance
+
+### Deliberative (Top-down)
+- Plans actions
+- Slower response
+- Example: Path planning
+
+### Hybrid
+- Combines both approaches
+- Reactive layer for safety
+- Deliberative layer for goals

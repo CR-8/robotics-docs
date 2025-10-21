@@ -1,0 +1,58 @@
+---
+title: Batteries
+description: Power sources for robotics projects
+---
+
+# Batteries
+
+Selecting the right battery is crucial for robot performance, runtime, and safety.
+
+## Battery Types
+
+### Lithium Polymer (LiPo)
+- **Pros**: High energy density, lightweight, high discharge rates
+- **Cons**: Requires careful handling, can be dangerous if damaged
+- **Use Cases**: Drones, combat robots, RC vehicles
+- **Voltage**: 3.7V per cell (1S = 3.7V, 2S = 7.4V, 3S = 11.1V, etc.)
+
+### Lithium-Ion (Li-ion)
+- **Pros**: Safer than LiPo, good energy density
+- **Cons**: Lower discharge rates, heavier
+- **Use Cases**: Mobile robots, educational projects
+
+### Nickel Metal Hydride (NiMH)
+- **Pros**: Safe, rechargeable, no memory effect
+- **Cons**: Lower energy density, self-discharge
+- **Use Cases**: Hobby robots, learning projects
+
+## Key Specifications
+
+- **Capacity (mAh)**: Total charge storage
+- **Voltage (V)**: Nominal operating voltage
+- **C-Rating**: Discharge rate capability
+- **Energy (Wh)**: Capacity × Voltage
+
+## Battery Safety
+
+⚠️ **Important Safety Tips**:
+
+1. Never overcharge or over-discharge
+2. Use proper balance chargers for LiPo
+3. Store at storage voltage (3.8V per cell)
+4. Keep away from heat and punctures
+5. Use fireproof LiPo bags
+
+## Calculating Runtime
+
+```
+Runtime (hours) = Battery Capacity (mAh) / Current Draw (mA) × 1000
+```
+
+Example: 5000mAh battery with 2000mA draw = 2.5 hours
+
+## Popular Battery Options
+
+- **Turnigy**: Budget LiPo options
+- **Gens Ace**: High-quality LiPo
+- **Sony VTC6**: High-drain 18650 Li-ion
+- **Panasonic Eneloop**: Best NiMH for robotics

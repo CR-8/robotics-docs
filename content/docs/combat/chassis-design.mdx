@@ -1,0 +1,338 @@
+---
+title: Chassis Design
+description: Designing robust chassis for combat robots
+---
+
+# Chassis Design
+
+The chassis is the foundation of any combat robot, providing structure, protection, and mounting for components.
+
+## Design Considerations
+
+### Weight Classes
+
+**Beetleweight**: 3 lbs (1.36 kg)
+- Compact design
+- 3D printed parts common
+- Brushless motors
+
+**Antweight**: 1 lb (454 g)
+- Ultra-compact
+- Minimal armor
+- High power density
+
+**Featherweight**: 30 lbs (13.6 kg)
+- Increased complexity
+- Better armor options
+- More powerful weapons
+
+**Hobbyweight**: 12 lbs (5.4 kg)
+**Lightweight**: 60 lbs (27.2 kg)
+**Middleweight**: 120 lbs (54.4 kg)
+**Heavyweight**: 250 lbs (113.4 kg)
+
+### Material Selection
+
+**Aluminum (6061-T6)**
+- ✅ Lightweight
+- ✅ Easy to machine
+- ✅ Good strength-to-weight
+- ❌ Moderate impact resistance
+- **Use**: Frame, internal structure
+
+**HDPE (High-Density Polyethylene)**
+- ✅ Excellent impact absorption
+- ✅ Self-lubricating
+- ✅ Cheap
+- ❌ Melts under heat
+- **Use**: Wedges, armor, wheels
+
+**AR500/AR400 Steel**
+- ✅ Extreme hardness
+- ✅ Impact resistant
+- ❌ Very heavy
+- **Use**: Spinner teeth, critical armor
+
+**Titanium**
+- ✅ Best strength-to-weight
+- ✅ Spark resistance
+- ❌ Very expensive
+- ❌ Hard to machine
+- **Use**: High-end spinner bars
+
+**TPU (3D Printed)**
+- ✅ Flexible, absorbs impacts
+- ✅ Fast iteration
+- ❌ Limited strength
+- **Use**: Shock mounts, protective covers
+
+**Carbon Fiber**
+- ✅ Extremely light
+- ✅ Very strong (in tension)
+- ❌ Brittle (poor impact)
+- ❌ Expensive
+- **Use**: Spinner discs, structural panels
+
+## Chassis Types
+
+### Wedge/Ramp Bot
+
+```
+     /|
+    / |
+   /  |
+  /   |
+ /____|
+[MOTOR][BATTERY]
+```
+
+**Pros**:
+- Simple design
+- Effective against many bots
+- Low center of gravity
+
+**Cons**:
+- Passive weapon
+- Vulnerable to spinners
+
+### Vertical Spinner
+
+```
+    [SPINNER]
+    /       \
+   |  [BAT]  |
+   |_[MOTOR]_|
+    W       W
+```
+
+**Pros**:
+- High kinetic energy
+- Offensive capability
+- Intimidating
+
+**Cons**:
+- Complex weapon system
+- Gyroscopic effects
+- High current draw
+
+### Horizontal Spinner
+
+```
+================
+   [SPINNER]
+ ___________
+|[M][B][M] |
+|_W_____W__|
+```
+
+**Pros**:
+- Maximum energy transfer
+- 360° coverage
+- Devastating hits
+
+**Cons**:
+- Reaction forces
+- Exposed wheels
+- Hard to control
+
+### Drum Spinner
+
+```
+   ___TEETH___
+  /           \
+ |    [M]      |
+ |   [BAT]    |
+ |_____W_____W|
+```
+
+**Pros**:
+- Good traction
+- Continuous engagement
+- Stable
+
+**Cons**:
+- Heavy weapon
+- Complex construction
+
+### Lifter/Flipper
+
+```
+    /====\  <- Arm
+   |      |
+   |[GAS] |  or  [MOTOR]
+   |[BAT] |
+   |__W_W_|
+```
+
+**Pros**:
+- Control opponent
+- OOTA (Out Of The Arena)
+- Strategic
+
+**Cons**:
+- Requires precision
+- Gas systems complex
+- Limited damage
+
+## Design Process
+
+### 1. CAD Modeling
+
+**Recommended Software**:
+- **Fusion 360**: Free for hobbyists, powerful
+- **OnShape**: Cloud-based, collaborative
+- **SolidWorks**: Industry standard (expensive)
+
+```python
+# Calculate spinner kinetic energy
+def spinner_energy(mass_kg, radius_m, rpm):
+    omega = rpm * 2 * 3.14159 / 60  # rad/s
+    moment_of_inertia = 0.5 * mass_kg * radius_m**2  # Disc approximation
+    energy_joules = 0.5 * moment_of_inertia * omega**2
+    return energy_joules
+
+# Example: 3kg disc, 15cm radius, 10000 RPM
+energy = spinner_energy(3, 0.15, 10000)
+print(f"Spinner energy: {energy:.1f} joules")
+```
+
+### 2. Weight Budget
+
+Example for 3lb beetleweight:
+
+| Component | Weight (g) |
+|-----------|----------|
+| Chassis | 500 |
+| Motors (2x) | 200 |
+| Wheels (4x) | 150 |
+| Battery | 200 |
+| Electronics | 100 |
+| Weapon | 400 |
+| Armor | 300 |
+| **Total** | **1850** |
+| **Margin** | **-486** ⚠️ |
+
+*Need to reduce!*
+
+### 3. Center of Gravity
+
+Keep COG low and centered:
+
+```python
+def calculate_cog(components):
+    total_mass = sum(c['mass'] for c in components)
+    cog_x = sum(c['mass'] * c['x'] for c in components) / total_mass
+    cog_y = sum(c['mass'] * c['y'] for c in components) / total_mass
+    cog_z = sum(c['mass'] * c['z'] for c in components) / total_mass
+    return (cog_x, cog_y, cog_z)
+
+# Check if stable
+def is_stable(cog, wheel_positions):
+    # COG should be inside wheelbase polygon
+    return point_in_polygon(cog[:2], wheel_positions)
+```
+
+### 4. Structural Analysis
+
+**FEA (Finite Element Analysis)**:
+- Test stress points
+- Identify weak areas
+- Optimize thickness
+
+## Armor Strategies
+
+### Ablative Armor
+- HDPE, UHMW
+- Absorbs impacts by deforming
+- Cheap to replace
+
+### Hardened Armor
+- AR500 steel, titanium
+- Deflects hits
+- Protects critical areas
+
+### Sloped Armor
+- Deflects spinners
+- Reduces effective thickness needed
+- Aerodynamic
+
+## Drivetrain Layout
+
+### 2WD (Two-Wheel Drive)
+- ✅ Simple
+- ✅ Lightweight
+- ❌ Less traction
+- ❌ Less pushing power
+
+### 4WD (Four-Wheel Drive)
+- ✅ Maximum traction
+- ✅ Pushing power
+- ❌ Heavier
+- ❌ More complex
+
+### Tank/Skid Steer
+```cpp
+void drive(int forward, int turn) {
+  int left = forward + turn;
+  int right = forward - turn;
+  
+  setLeftMotors(left);
+  setRightMotors(right);
+}
+```
+
+## Fasteners & Assembly
+
+**Thread-locking**:
+- Blue Loctite: Removable
+- Red Loctite: Permanent
+
+**Fastener Types**:
+- Socket head cap screws: Strong, low profile
+- Button head: Clearance for armor
+- Countersunk: Flush mount
+
+## Survival Tips
+
+1. **Redundancy**: Dual motor controllers
+2. **Protection**: Conformal coating on electronics
+3. **Accessibility**: Easy battery access
+4. **Shock Mounting**: Isolate electronics
+5. **Cable Management**: Prevent wire snagging
+
+## Common Mistakes
+
+❌ **Overweight**: Always under-budget
+❌ **High COG**: Will get flipped
+❌ **Weak Fasteners**: Use grade 8 or better
+❌ **No Weapon Safety**: Add removable link
+❌ **Poor Wiring**: Loose wires = fires
+❌ **Fragile Wheels**: Protect from spinners
+
+## Building Process
+
+1. CAD design + weight check
+2. Order materials
+3. CNC/waterjet cutting
+4. Assemble chassis
+5. Mount electronics
+6. Test drive
+7. Add weapon
+8. Arena testing
+9. Competition!
+
+## Example Beetle Build
+
+```python
+# Wedge bot specification
+class WedgeBeetle:
+    specs = {
+        'weight_class': '3 lbs',
+        'drivetrain': '4WD',
+        'motors': 'N20 1000 RPM',
+        'battery': '3S 450mAh LiPo',
+        'chassis': 'HDPE + aluminum',
+        'armor': 'HDPE wedge',
+        'strategy': 'Get under and push'
+    }
+```

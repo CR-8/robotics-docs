@@ -1,0 +1,298 @@
+---
+title: Autonomous Navigation
+description: Navigation systems for autonomous robots
+---
+
+# Autonomous Navigation
+
+Autonomous navigation enables robots to move through environments without human intervention.
+
+## Navigation Approaches
+
+### Map-Based Navigation
+- Pre-built map of environment
+- Robot localizes itself on map
+- Plans path to goal
+
+### Sensor-Based Navigation
+- Reacts to real-time sensor data
+- No prior map needed
+- More flexible but less efficient
+
+### SLAM (Simultaneous Localization and Mapping)
+- Builds map while navigating
+- Estimates position simultaneously
+- Gold standard for autonomous robots
+
+## SLAM Algorithms
+
+### 2D SLAM
+
+**Hector SLAM**
+- Laser scanner based
+- No odometry required
+- Fast, real-time capable
+
+**GMapping**
+- Particle filter based
+- Uses odometry + laser
+- More accurate
+
+**Cartographer**
+- Google's SLAM solution
+- 2D and 3D capable
+- Handles large environments
+
+### Visual SLAM (vSLAM)
+
+**ORB-SLAM**
+- Camera-based
+- Feature detection
+- 3D reconstruction
+
+**RTAB-Map**
+- RGB-D camera support
+- Loop closure detection
+- Memory management for large maps
+
+## Localization Methods
+
+### GPS
+- **Accuracy**: 5-10m (consumer)
+- **RTK-GPS**: cm-level accuracy
+- **Limitations**: Indoor, urban canyons
+
+### Odometry
+```python
+class Odometry:
+    def __init__(self):
+        self.x = 0
+        self.y = 0
+        self.theta = 0
+    
+    def update(self, left_dist, right_dist, wheelbase):
+        # Calculate movement
+        distance = (left_dist + right_dist) / 2
+        delta_theta = (right_dist - left_dist) / wheelbase
+        
+        # Update position
+        self.x += distance * math.cos(self.theta)
+        self.y += distance * math.sin(self.theta)
+        self.theta += delta_theta
+        
+        return (self.x, self.y, self.theta)
+```
+
+### Particle Filter (Monte Carlo Localization)
+- Multiple position hypotheses
+- Converges to most likely position
+- Handles ambiguity
+
+## Path Planning Algorithms
+
+### Grid-Based Planning
+
+**A\* Algorithm**
+```python
+def a_star(start, goal, grid):
+    open_set = {start}
+    came_from = {}
+    
+    g_score = {start: 0}
+    f_score = {start: heuristic(start, goal)}
+    
+    while open_set:
+        current = min(open_set, key=lambda x: f_score.get(x, float('inf')))
+        
+        if current == goal:
+            return reconstruct_path(came_from, current)
+        
+        open_set.remove(current)
+        
+        for neighbor in get_neighbors(current, grid):
+            tentative_g_score = g_score[current] + distance(current, neighbor)
+            
+            if tentative_g_score < g_score.get(neighbor, float('inf')):
+                came_from[neighbor] = current
+                g_score[neighbor] = tentative_g_score
+                f_score[neighbor] = g_score[neighbor] + heuristic(neighbor, goal)
+                open_set.add(neighbor)
+    
+    return None  # No path found
+```
+
+**Dijkstra's Algorithm**
+- Guaranteed shortest path
+- No heuristic needed
+- Slower than A*
+
+### Sampling-Based Planning
+
+**RRT (Rapidly-exploring Random Tree)**
+- Random sampling
+- Good for high-dimensional spaces
+- Probabilistically complete
+
+**RRT\***
+- Optimized version of RRT
+- Asymptotically optimal
+
+### Dynamic Window Approach (DWA)
+- Local planning
+- Considers robot dynamics
+- Real-time obstacle avoidance
+
+```python
+def dwa(robot_state, obstacles, goal):
+    # Generate possible velocities
+    velocities = generate_velocity_space(robot_state)
+    
+    # Evaluate each velocity
+    best_v = None
+    best_score = -float('inf')
+    
+    for v in velocities:
+        # Predict trajectory
+        trajectory = predict_trajectory(robot_state, v)
+        
+        # Score based on:
+        # 1. Distance to goal
+        # 2. Obstacle clearance
+        # 3. Velocity (prefer faster)
+        score = evaluate_trajectory(trajectory, goal, obstacles)
+        
+        if score > best_score:
+            best_score = score
+            best_v = v
+    
+    return best_v
+```
+
+## Obstacle Avoidance
+
+### Vector Field Histogram (VFH)
+- Creates polar histogram from sensor data
+- Finds gaps in obstacles
+- Selects best direction
+
+### Potential Fields
+```python
+def potential_field(robot_pos, goal, obstacles):
+    # Attractive force to goal
+    attractive = K_att * (goal - robot_pos)
+    
+    # Repulsive force from obstacles
+    repulsive = np.array([0.0, 0.0])
+    for obs in obstacles:
+        diff = robot_pos - obs
+        distance = np.linalg.norm(diff)
+        
+        if distance < threshold:
+            repulsive += K_rep * (1/distance - 1/threshold) * (1/distance**2) * (diff/distance)
+    
+    # Combine forces
+    total_force = attractive + repulsive
+    return total_force / np.linalg.norm(total_force)
+```
+
+## Sensors for Navigation
+
+### LiDAR
+- **2D**: RPLIDAR, Hokuyo
+- **3D**: Velodyne, Ouster
+- **Range**: 10-100m
+- **Use**: SLAM, obstacle detection
+
+### Depth Cameras
+- **Intel RealSense**: D435, D455
+- **Kinect**: (discontinued)
+- **Range**: 0.3-10m
+- **Use**: Indoor navigation, vSLAM
+
+### Cameras
+- **Monocular**: Single camera, depth from motion
+- **Stereo**: Two cameras, depth from disparity
+- **RGB-D**: Color + depth
+
+## ROS Integration
+
+```python
+#!/usr/bin/env python
+import rospy
+from geometry_msgs.msg import Twist
+from nav_msgs.msg import Odometry
+from sensor_msgs.msg import LaserScan
+
+class AutonomousNavigator:
+    def __init__(self):
+        rospy.init_node('autonomous_navigator')
+        
+        self.cmd_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        rospy.Subscriber('/odom', Odometry, self.odom_callback)
+        rospy.Subscriber('/scan', LaserScan, self.scan_callback)
+        
+        self.position = None
+        self.obstacles = []
+    
+    def odom_callback(self, msg):
+        self.position = msg.pose.pose.position
+    
+    def scan_callback(self, msg):
+        self.obstacles = self.process_laser_scan(msg)
+        self.navigate()
+    
+    def navigate(self):
+        cmd = Twist()
+        
+        # Simple obstacle avoidance
+        if min(self.obstacles) < 0.5:  # Too close
+            cmd.angular.z = 0.5  # Turn
+        else:
+            cmd.linear.x = 0.3  # Move forward
+        
+        self.cmd_vel_pub.publish(cmd)
+
+if __name__ == '__main__':
+    nav = AutonomousNavigator()
+    rospy.spin()
+```
+
+## Waypoint Navigation
+
+```python
+class WaypointNavigator:
+    def __init__(self, waypoints):
+        self.waypoints = waypoints
+        self.current_waypoint = 0
+    
+    def get_target(self):
+        if self.current_waypoint < len(self.waypoints):
+            return self.waypoints[self.current_waypoint]
+        return None
+    
+    def check_waypoint_reached(self, robot_pos, threshold=0.5):
+        target = self.get_target()
+        if target is None:
+            return True
+        
+        distance = np.linalg.norm(robot_pos - target)
+        if distance < threshold:
+            self.current_waypoint += 1
+            return True
+        return False
+```
+
+## Error Recovery
+
+- **Stuck Detection**: Monitor movement progress
+- **Re-planning**: Generate new path if blocked
+- **Safe Mode**: Stop and request help
+- **Fallback Behaviors**: Return to known position
+
+## Real-World Challenges
+
+1. **Dynamic Obstacles**: Moving people, vehicles
+2. **Sensor Noise**: Filtering and validation
+3. **Computational Limits**: Real-time performance
+4. **Unknown Environments**: Exploration strategies
+5. **Multi-floor Navigation**: Elevators, stairs

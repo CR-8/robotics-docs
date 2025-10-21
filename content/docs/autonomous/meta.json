@@ -1,0 +1,5 @@
+{
+  "title": "Autonomous Systems",
+  "icon": "Bot",
+  "pages": ["navigation", "ai-logic", "sensor-fusion"]
+}

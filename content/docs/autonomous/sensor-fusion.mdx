@@ -1,0 +1,425 @@
+---
+title: Sensor Fusion
+description: Combining multiple sensors for robust perception
+---
+
+# Sensor Fusion
+
+Sensor fusion combines data from multiple sensors to achieve more accurate and reliable information than any single sensor can provide.
+
+## Why Sensor Fusion?
+
+### Single Sensor Limitations
+
+- **Camera**: No depth, affected by lighting
+- **LiDAR**: Expensive, limited in rain/fog
+- **IMU**: Drifts over time
+- **GPS**: Inaccurate indoors, ~5m error
+- **Ultrasonic**: Limited range, wide beam
+
+### Fusion Benefits
+
+✅ **Redundancy**: Backup if one sensor fails
+✅ **Accuracy**: Combine strengths, minimize weaknesses
+✅ **Robustness**: Work in varied conditions
+✅ **Completeness**: Fuller understanding of environment
+
+## Fusion Techniques
+
+### Complementary Filter
+
+Simple and computationally efficient for IMU fusion.
+
+```cpp
+// Fuse accelerometer and gyroscope for tilt angle
+float alpha = 0.98;  // Complementary filter coefficient
+float angle = 0;
+float gyro_rate = 0;
+float accel_angle = 0;
+
+void loop() {
+  // Read sensors
+  gyro_rate = readGyroscope();
+  accel_angle = atan2(accel_y, accel_z) * 180 / PI;
+  
+  // Complementary filter
+  angle = alpha * (angle + gyro_rate * dt) + (1 - alpha) * accel_angle;
+  
+  delay(10);
+}
+```
+
+**Use Case**: Attitude estimation (drones, balancing robots)
+
+### Kalman Filter
+
+Optimal estimator for linear systems with Gaussian noise.
+
+```python
+import numpy as np
+
+class KalmanFilter:
+    def __init__(self, F, H, Q, R, P, x0):
+        self.F = F  # State transition matrix
+        self.H = H  # Observation matrix
+        self.Q = Q  # Process noise covariance
+        self.R = R  # Measurement noise covariance
+        self.P = P  # Estimate error covariance
+        self.x = x0 # Initial state
+    
+    def predict(self):
+        # Predict state
+        self.x = self.F @ self.x
+        
+        # Predict covariance
+        self.P = self.F @ self.P @ self.F.T + self.Q
+    
+    def update(self, z):
+        # Innovation
+        y = z - self.H @ self.x
+        
+        # Innovation covariance
+        S = self.H @ self.P @ self.H.T + self.R
+        
+        # Kalman gain
+        K = self.P @ self.H.T @ np.linalg.inv(S)
+        
+        # Update state
+        self.x = self.x + K @ y
+        
+        # Update covariance
+        I = np.eye(len(self.x))
+        self.P = (I - K @ self.H) @ self.P
+        
+        return self.x
+
+# Example: Fuse GPS and IMU
+F = np.array([[1, dt], [0, 1]])  # Position and velocity
+H = np.array([[1, 0]])            # GPS measures position only
+Q = np.eye(2) * 0.01              # Process noise
+R = np.array([[5.0]])             # GPS noise (5m std dev)
+P = np.eye(2)                     # Initial uncertainty
+x0 = np.array([[0], [0]])         # Initial state
+
+kf = KalmanFilter(F, H, Q, R, P, x0)
+
+# Update loop
+while True:
+    kf.predict()  # Predict using IMU
+    gps_position = get_gps()
+    estimated_state = kf.update(gps_position)
+```
+
+### Extended Kalman Filter (EKF)
+
+Handles non-linear systems (common in robotics).
+
+```python
+def ekf_update(x, P, z, h, H_jacobian, R):
+    """
+    x: State vector
+    P: Covariance matrix
+    z: Measurement
+    h: Measurement function (non-linear)
+    H_jacobian: Jacobian of h
+    R: Measurement noise
+    """
+    # Predicted measurement
+    z_pred = h(x)
+    
+    # Innovation
+    y = z - z_pred
+    
+    # Jacobian of h at current state
+    H = H_jacobian(x)
+    
+    # Innovation covariance
+    S = H @ P @ H.T + R
+    
+    # Kalman gain
+    K = P @ H.T @ np.linalg.inv(S)
+    
+    # Update state
+    x = x + K @ y
+    
+    # Update covariance
+    P = (np.eye(len(x)) - K @ H) @ P
+    
+    return x, P
+```
+
+**Use Case**: Robot localization with non-linear motion models
+
+### Particle Filter
+
+Non-parametric approach, handles multi-modal distributions.
+
+```python
+class ParticleFilter:
+    def __init__(self, num_particles):
+        self.particles = np.random.randn(num_particles, 3)  # x, y, theta
+        self.weights = np.ones(num_particles) / num_particles
+    
+    def predict(self, control):
+        # Move particles according to motion model + noise
+        noise = np.random.randn(len(self.particles), 3) * 0.1
+        self.particles += control + noise
+    
+    def update(self, measurement, landmarks):
+        # Update weights based on measurement likelihood
+        for i, particle in enumerate(self.particles):
+            expected = self.expected_measurement(particle, landmarks)
+            error = np.linalg.norm(measurement - expected)
+            self.weights[i] = np.exp(-error**2 / 2)
+        
+        # Normalize weights
+        self.weights /= np.sum(self.weights)
+    
+    def resample(self):
+        # Resample particles based on weights
+        indices = np.random.choice(
+            len(self.particles), 
+            size=len(self.particles), 
+            p=self.weights
+        )
+        self.particles = self.particles[indices]
+        self.weights = np.ones(len(self.particles)) / len(self.particles)
+    
+    def estimate(self):
+        # Weighted average of particles
+        return np.average(self.particles, weights=self.weights, axis=0)
+```
+
+**Use Case**: Monte Carlo Localization (MCL)
+
+## Common Fusion Scenarios
+
+### IMU + GPS
+
+**Problem**: GPS is slow and inaccurate, IMU drifts
+**Solution**: Kalman filter
+
+```python
+# State: [x, y, vx, vy]
+# IMU provides acceleration
+# GPS provides position
+
+def fuse_imu_gps(imu_accel, gps_pos, dt):
+    # Predict with IMU
+    predicted_pos = current_pos + current_vel * dt
+    predicted_vel = current_vel + imu_accel * dt
+    
+    # Update with GPS
+    kalman_update(predicted_pos, gps_pos)
+    
+    return estimated_pos, estimated_vel
+```
+
+### Camera + LiDAR
+
+**Problem**: Camera has no depth, LiDAR has no texture
+**Solution**: Fusion for 3D semantic understanding
+
+```python
+def fuse_camera_lidar(image, pointcloud):
+    # Project LiDAR points onto image
+    image_points = project_to_image(pointcloud, camera_matrix)
+    
+    # Detect objects in image
+    detections = yolo_detect(image)
+    
+    # Associate LiDAR points with detections
+    for detection in detections:
+        bbox = detection.bbox
+        points_in_bbox = [p for p in image_points if inside(p, bbox)]
+        
+        # Get depth from LiDAR
+        depth = np.mean([p.z for p in points_in_bbox])
+        
+        # Now we have 3D position of detected object
+        object_3d = {
+            'class': detection.class_name,
+            'position': calculate_3d_position(bbox, depth),
+            'confidence': detection.confidence
+        }
+```
+
+### Stereo Camera + IMU
+
+**Problem**: Visual odometry drifts, IMU accumulates error
+**Solution**: Visual-Inertial Odometry (VIO)
+
+```python
+class VIO:
+    def __init__(self):
+        self.ekf = ExtendedKalmanFilter()
+        self.feature_tracker = FeatureTracker()
+    
+    def process(self, stereo_images, imu_data):
+        # Track features between frames
+        features = self.feature_tracker.track(stereo_images)
+        
+        # Estimate motion from features
+        visual_motion = estimate_motion(features)
+        
+        # Predict with IMU
+        imu_motion = integrate_imu(imu_data)
+        
+        # Fuse with EKF
+        fused_state = self.ekf.update(imu_motion, visual_motion)
+        
+        return fused_state
+```
+
+### Multiple Distance Sensors
+
+**Problem**: Single sensor can be blocked or inaccurate
+**Solution**: Median filter or weighted average
+
+```python
+def fuse_distance_sensors(sensors):
+    readings = [s.read() for s in sensors]
+    
+    # Remove outliers (readings > 3 std dev from mean)
+    mean = np.mean(readings)
+    std = np.std(readings)
+    filtered = [r for r in readings if abs(r - mean) < 3 * std]
+    
+    if len(filtered) > 0:
+        return np.median(filtered)  # Robust to outliers
+    else:
+        return mean  # Fallback
+```
+
+## Sensor Calibration
+
+### Camera-LiDAR Calibration
+
+```python
+def calibrate_camera_lidar(image_points, lidar_points):
+    """
+    Find transformation matrix between camera and LiDAR
+    """
+    # Collect corresponding points
+    correspondences = match_points(image_points, lidar_points)
+    
+    # Solve PnP problem
+    retval, rvec, tvec = cv2.solvePnP(
+        lidar_points, 
+        image_points, 
+        camera_matrix, 
+        dist_coeffs
+    )
+    
+    # Create transformation matrix
+    R = cv2.Rodrigues(rvec)[0]
+    T = np.hstack((R, tvec))
+    
+    return T
+```
+
+### IMU Calibration
+
+```python
+def calibrate_imu(imu, num_samples=1000):
+    """Calibrate accelerometer and gyroscope biases"""
+    accel_sum = np.zeros(3)
+    gyro_sum = np.zeros(3)
+    
+    print("Keep IMU stationary...")
+    
+    for i in range(num_samples):
+        accel, gyro = imu.read()
+        accel_sum += accel
+        gyro_sum += gyro
+        time.sleep(0.01)
+    
+    # Calculate biases
+    gyro_bias = gyro_sum / num_samples
+    accel_bias = accel_sum / num_samples
+    accel_bias[2] -= 9.81  # Remove gravity
+    
+    return accel_bias, gyro_bias
+```
+
+## Time Synchronization
+
+Critical for proper fusion:
+
+```python
+class SensorSync:
+    def __init__(self, buffer_size=100):
+        self.buffers = {
+            'camera': deque(maxlen=buffer_size),
+            'lidar': deque(maxlen=buffer_size),
+            'imu': deque(maxlen=buffer_size)
+        }
+    
+    def add_measurement(self, sensor_name, timestamp, data):
+        self.buffers[sensor_name].append((timestamp, data))
+    
+    def get_synchronized(self, target_time, tolerance=0.01):
+        """Get measurements closest to target_time"""
+        synced = {}
+        
+        for sensor, buffer in self.buffers.items():
+            closest = min(
+                buffer, 
+                key=lambda x: abs(x[0] - target_time)
+            )
+            
+            if abs(closest[0] - target_time) < tolerance:
+                synced[sensor] = closest[1]
+        
+        return synced if len(synced) == len(self.buffers) else None
+```
+
+## Practical Implementation Tips
+
+1. **Start Simple**: Begin with complementary filter
+2. **Characterize Sensors**: Measure noise and bias
+3. **Tune Parameters**: Adjust filter gains empirically
+4. **Handle Failures**: Detect and exclude bad sensors
+5. **Log Data**: Record for offline analysis
+
+## ROS Sensor Fusion
+
+```python
+#!/usr/bin/env python
+import rospy
+from sensor_msgs.msg import Imu
+from nav_msgs.msg import Odometry
+from robot_localization import EKF
+
+class SensorFusionNode:
+    def __init__(self):
+        rospy.init_node('sensor_fusion')
+        
+        # Subscribe to sensors
+        rospy.Subscriber('/imu', Imu, self.imu_callback)
+        rospy.Subscriber('/gps/odom', Odometry, self.gps_callback)
+        
+        # Publish fused estimate
+        self.pub = rospy.Publisher('/fused/odom', Odometry, queue_size=10)
+        
+        self.ekf = EKF()
+    
+    def imu_callback(self, msg):
+        self.ekf.predict(msg)
+    
+    def gps_callback(self, msg):
+        fused = self.ekf.update(msg)
+        self.pub.publish(fused)
+
+if __name__ == '__main__':
+    node = SensorFusionNode()
+    rospy.spin()
+```
+
+## Performance Metrics
+
+- **Accuracy**: Error vs ground truth
+- **Precision**: Consistency of estimates
+- **Latency**: Time delay in fusion
+- **Computational Cost**: CPU/memory usage
+- **Robustness**: Performance in edge cases

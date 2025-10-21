@@ -1,0 +1,5 @@
+{
+  "title": "Basic Components",
+  "icon": "Cpu",
+  "pages": ["motors", "batteries", "sensors", "chargers", "microcontrollers"]
+}
