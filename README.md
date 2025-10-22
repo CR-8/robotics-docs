@@ -27,6 +27,26 @@ In the project, you can see:
 | `app/(home)`              | The route group for your landing page and other pages. |
 | `app/docs`                | The documentation layout and pages.                    |
 | `app/api/search/route.ts` | The Route Handler for search.                          |
+| `app/analytics-dashboard` | Hidden analytics dashboard (see ANALYTICS.md).         |
+
+### Analytics Dashboard
+
+This project includes a hidden analytics dashboard accessible at `/analytics-dashboard`. 
+
+**Features:**
+- 📊 Track page views, unique visitors, and top pages
+- 🔒 Protected by 6-digit authentication code
+- 💰 100% free - no external services
+- 🚀 Works on Vercel's free tier
+
+**Setup:**
+1. Set your 6-digit code in environment variables:
+   - Local: Add `ANALYTICS_CODE=123456` to `.env`
+   - Vercel: Add environment variable `ANALYTICS_CODE` in project settings
+2. Access at: `https://your-domain.com/analytics-dashboard`
+3. Enter your code to view analytics
+
+See [ANALYTICS.md](./ANALYTICS.md) for detailed documentation.
 
 ### Fumadocs MDX
 
