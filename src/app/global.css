@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import 'fumadocs-ui/css/solar.css';
+@import 'fumadocs-ui/css/ocean.css';
 @import 'fumadocs-ui/css/preset.css';
 
 @custom-variant dark (&:is(.dark *));
@@ -173,5 +173,69 @@
   
   [data-docs-body] li {
     margin-top: 0.5rem;
+  }
+}
+
+/* Print styles for PDF export */
+@media print {
+  #nd-docs-layout {
+    --fd-sidebar-width: 0px !important;
+  }
+  
+  #nd-sidebar,
+  #nd-subnav,
+  #nd-tocnav {
+    display: none !important;
+  }
+  
+  /* Hide navigation elements */
+  nav,
+  .fd-nav,
+  [role="navigation"],
+  [data-docs-sidebar],
+  [data-toc] {
+    display: none !important;
+  }
+  
+  /* Ensure main content takes full width */
+  main,
+  [data-docs-layout],
+  [data-docs-page] {
+    margin: 0 !important;
+    padding: 20px !important;
+    max-width: 100% !important;
+  }
+  
+  /* Hide interactive elements */
+  button,
+  .feedback-section,
+  .page-actions,
+  [data-feedback],
+  [data-page-actions] {
+    display: none !important;
+  }
+  
+  /* Improve print layout */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  /* Ensure code blocks are visible */
+  pre,
+  code {
+    background: #f5f5f5 !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+  
+  /* Prevent page breaks in headings */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  
+  /* Better table printing */
+  table {
+    page-break-inside: avoid;
   }
 }

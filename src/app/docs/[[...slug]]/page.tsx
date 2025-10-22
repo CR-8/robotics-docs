@@ -10,7 +10,7 @@ import { getMDXComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { Feedback } from '@/components/feedback';
-import { LLMCopyButton, ViewOptions } from '@/components/page-actions';
+import { LLMCopyButton, ViewOptions, TTSButton, DownloadPDFButton } from '@/components/page-actions';
 
 export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
   const params = await props.params;
@@ -30,6 +30,8 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
           markdownUrl={`${page.url}.mdx`} 
           githubUrl={`https://github.com/CR-8/robotics-docs/blob/main/content${page.url}.mdx`} 
         />
+        <TTSButton />
+        <DownloadPDFButton />
       </div>
       <DocsBody>
         <MDX

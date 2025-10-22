@@ -6,6 +6,9 @@ import {
   Copy,
   ExternalLinkIcon,
   MessageCircleIcon,
+  Volume2,
+  VolumeX,
+  Download,
 } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button';
@@ -243,5 +246,104 @@ export function ViewOptions({
         ))}
       </PopoverContent>
     </Popover>
+  );
+}
+
+// TTS Button Component
+export function TTSButton() {
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const extractTextFromPage = (): string => {
+    const contentElement = document.querySelector('.nd-prose, article, main');
+    if (!contentElement) return '';
+
+    const clone = contentElement.cloneNode(true) as HTMLElement;
+    const removeSelectors = ['pre', 'code', 'nav', 'button', 'aside', '[role="navigation"]', '.toc', 'header', 'footer', 'script', 'style'];
+    removeSelectors.forEach(selector => {
+      clone.querySelectorAll(selector).forEach(el => el.remove());
+    });
+
+    return clone.textContent?.trim() || '';
+  };
+
+  const speak = () => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert('Text-to-Speech is not supported in this browser.');
+      return;
+    }
+
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+
+    const text = extractTextFromPage();
+    if (!text) {
+      alert('No content found to read.');
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = document.documentElement.lang || 'en-IN';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    utterance.onstart = () => setIsSpeaking(true);
+    utterance.onend = () => setIsSpeaking(false);
+    utterance.onerror = () => setIsSpeaking(false);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  return (
+    <button
+      onClick={speak}
+      className={cn(
+        buttonVariants({
+          color: 'secondary',
+          size: 'sm',
+          className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
+        }),
+      )}
+      aria-label={isSpeaking ? 'Stop reading' : 'Read aloud'}
+    >
+      {isSpeaking ? <VolumeX /> : <Volume2 />}
+      {isSpeaking ? 'Stop' : 'Listen'}
+    </button>
+  );
+}
+
+// Download PDF Button Component
+export function DownloadPDFButton() {
+  const downloadPDF = async () => {
+    // Get the current pathname and construct API URL
+    const pathname = window.location.pathname;
+    const timestamp = Date.now(); // Add timestamp to prevent caching
+    const apiUrl = `/api/pdf${pathname}?t=${timestamp}`;
+
+    console.log('Opening PDF in new tab:', apiUrl);
+
+    // Open in new tab to trigger download dialog
+    window.open(apiUrl, '_blank');
+  };
+
+  return (
+    <button
+      onClick={downloadPDF}
+      className={cn(
+        buttonVariants({
+          color: 'secondary',
+          size: 'sm',
+          className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
+        }),
+      )}
+      aria-label="Download as PDF"
+    >
+      <Download />
+      PDF
+    </button>
   );
 }
