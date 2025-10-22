@@ -63,7 +63,8 @@ export default function AnalyticsDashboard() {
         sessionStorage.removeItem('analytics_token');
       }
     } catch (err) {
-      setError('Failed to fetch analytics' , err);
+      setError('Failed to fetch analytics');
+      console.error('Analytics fetch error:', err);
     } finally {
       setLoading(false);
     }
