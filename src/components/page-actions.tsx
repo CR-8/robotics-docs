@@ -252,18 +252,20 @@ export function ViewOptions({
 // TTS Button Component
 export function TTSButton() {
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
 
   const extractTextFromPage = (): string => {
     const contentElement = document.querySelector('.nd-prose, article, main');
     if (!contentElement) return '';
 
     const clone = contentElement.cloneNode(true) as HTMLElement;
-    const removeSelectors = ['pre', 'code', 'nav', 'button', 'aside', '[role="navigation"]', '.toc', 'header', 'footer', 'script', 'style'];
+    const removeSelectors = ['pre', 'code', 'nav', 'button', 'aside', '[role="navigation"]', '.toc', 'header', 'footer', 'script', 'style', '.page-actions', '.feedback-section'];
     removeSelectors.forEach(selector => {
       clone.querySelectorAll(selector).forEach(el => el.remove());
     });
 
-    return clone.textContent?.trim() || '';
+    const textContent = clone.textContent?.trim() || '';
+    return textContent.replace(/\s+/g, ' ').trim();
   };
 
   const speak = () => {
@@ -273,8 +275,13 @@ export function TTSButton() {
     }
 
     if (isSpeaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
+      if (isPaused) {
+        speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        speechSynthesis.pause();
+        setIsPaused(true);
+      }
       return;
     }
 
@@ -290,29 +297,75 @@ export function TTSButton() {
     utterance.pitch = 1;
     utterance.volume = 1;
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setIsPaused(false);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setIsPaused(false);
+    };
 
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
   };
 
+  const stop = () => {
+    speechSynthesis.cancel();
+    setIsSpeaking(false);
+    setIsPaused(false);
+  };
+
+  const getButtonText = () => {
+    if (!isSpeaking) return 'Listen';
+    if (isPaused) return 'Resume';
+    return 'Pause';
+  };
+
+  const getButtonIcon = () => {
+    if (!isSpeaking) return <Volume2 />;
+    if (isPaused) return <Volume2 />;
+    return <VolumeX />;
+  };
+
   return (
-    <button
-      onClick={speak}
-      className={cn(
-        buttonVariants({
-          color: 'secondary',
-          size: 'sm',
-          className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
-        }),
+    <div className="flex items-center gap-1">
+      <button
+        onClick={speak}
+        className={cn(
+          buttonVariants({
+            color: 'secondary',
+            size: 'sm',
+            className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
+          }),
+        )}
+        aria-label={isSpeaking ? (isPaused ? 'Resume reading' : 'Pause reading') : 'Read aloud'}
+      >
+        {getButtonIcon()}
+        {getButtonText()}
+      </button>
+
+      {isSpeaking && (
+        <button
+          onClick={stop}
+          className={cn(
+            buttonVariants({
+              color: 'secondary',
+              size: 'sm',
+              className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
+            }),
+          )}
+          aria-label="Stop reading"
+        >
+          <VolumeX />
+          Stop
+        </button>
       )}
-      aria-label={isSpeaking ? 'Stop reading' : 'Read aloud'}
-    >
-      {isSpeaking ? <VolumeX /> : <Volume2 />}
-      {isSpeaking ? 'Stop' : 'Listen'}
-    </button>
+    </div>
   );
 }
 
