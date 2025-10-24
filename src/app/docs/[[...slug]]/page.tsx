@@ -28,7 +28,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
         <LLMCopyButton markdownUrl={`${page.url}.mdx`} />
         <ViewOptions 
           markdownUrl={`${page.url}.mdx`} 
-          githubUrl={`https://github.com/CR-8/robotics-docs/blob/main/content${page.url}.mdx`} 
+          githubUrl={`https://github.com/CR-8/robotics-docs/blob/main/content/docs/${page.url}.mdx`} 
         />
         <TTSButton />
         <DownloadPDFButton />
@@ -49,7 +49,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
             timestamp: new Date().toISOString(),
           });
           return { 
-            githubUrl: `https://github.com/CR-8/robotics-docs/blob/main/content${page.url}.mdx`,
+            githubUrl: `https://github.com/CR-8/robotics-docs/blob/main/content/docs/${page.url}.mdx`,
           };
         }}
       />
